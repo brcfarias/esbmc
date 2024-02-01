@@ -11,7 +11,7 @@ class struct_typet;
 class python_converter
 {
 public:
-  python_converter(contextt &_context, const nlohmann::json &ast);
+  python_converter(contextt &_context, nlohmann::json &ast);
   bool convert();
 
 private:
@@ -46,7 +46,7 @@ private:
   contextt &context;
   typet current_element_type;
   std::string python_filename;
-  const nlohmann::json &ast_json;
+  nlohmann::json &ast_json;
   std::string current_func_name;
   std::string current_class_name;
   exprt *ref_instance;

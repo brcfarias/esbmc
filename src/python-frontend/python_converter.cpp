@@ -1,4 +1,5 @@
 #include <python-frontend/python_converter.h>
+#include <python-frontend/python_class_adjust.h>
 #include <python-frontend/json_utils.h>
 #include <python_frontend_types.h>
 #include <util/std_code.h>
@@ -346,8 +347,12 @@ locationt
 python_converter::get_location_from_decl(const nlohmann::json &ast_node)
 {
   locationt location;
-  location.set_line(ast_node["lineno"].get<int>());
-  location.set_column(ast_node["col_offset"].get<int>());
+  if (ast_node.contains("lineno"))
+    location.set_line(ast_node["lineno"].get<int>());
+
+  if (ast_node.contains("col_offset"))
+    location.set_column(ast_node["col_offset"].get<int>());
+
   location.set_file(python_filename.c_str());
   location.set_function(current_func_name);
   return location;
@@ -1157,9 +1162,7 @@ exprt python_converter::get_block(const nlohmann::json &ast_block)
   return block;
 }
 
-python_converter::python_converter(
-  contextt &_context,
-  const nlohmann::json &ast)
+python_converter::python_converter(contextt &_context, nlohmann::json &ast)
   : context(_context),
     ast_json(ast),
     current_func_name(""),
@@ -1170,6 +1173,9 @@ python_converter::python_converter(
 
 bool python_converter::convert()
 {
+  python_class_adjust class_adjust(ast_json);
+  class_adjust.adjust();
+
   python_filename = ast_json["filename"].get<std::string>();
 
   exprt block_expr;
