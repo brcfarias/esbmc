@@ -15,8 +15,21 @@ bool has_init(const nlohmann::json &class_)
   return false;
 }
 
+/* Copy __init__ from base class
+ */
 void python_class_adjust::add_constructor(nlohmann::json &class_)
 {
+  // Remove pass from the class body
+  auto pass = std::find_if(
+    class_["body"].begin(),
+    class_["body"].end(),
+    [](const nlohmann::json &elem) { return elem["_type"] == "Pass"; });
+
+  // Check if the element was found
+  if (pass != class_["body"].end())
+    // Remove the element from the array
+    class_["body"].erase(pass);
+
   if (!has_init(class_))
   {
     /* If __init__ isn't defined, it is copied from first base class of the inheritance list*/
