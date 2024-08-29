@@ -1705,6 +1705,7 @@ void python_converter::convert()
       throw std::runtime_error("Function " + function + " not found");
     }
 
+    // Convert all variables from global scope and class definitions
     code_blockt block;
     // Convert classes referenced by the function
     for (const auto &clazz : global_scope_.classes())
