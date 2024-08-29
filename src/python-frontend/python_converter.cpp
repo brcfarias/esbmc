@@ -143,7 +143,6 @@ typet python_converter::get_typet(const std::string &ast_type, size_t type_size)
   }
   if (is_class(ast_type, ast_json))
     return symbol_typet("tag-" + ast_type);
-
   return empty_typet();
 }
 
