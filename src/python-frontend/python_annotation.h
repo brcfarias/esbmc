@@ -430,6 +430,17 @@ private:
     return type;
   }
 
+  void annotate_tuple(Json &element)
+  {
+    int i = 0;
+    for (auto &elt : element["targets"][0]["elts"])
+    {
+      const std::string &type =
+        get_type_from_constant(element["value"]["elts"][i++]);
+      elt["annotation"] = {{"id", type}};
+    }
+  }
+
   void add_annotation(Json &body)
   {
     for (auto &element : body["body"])
@@ -470,6 +481,14 @@ private:
 
       if (stmt_type != "Assign" || !element["type_comment"].is_null())
         continue;
+
+      if (
+        element.contains("targets") && element["targets"].is_array() &&
+        element["targets"][0]["_type"] == "Tuple")
+      {
+        annotate_tuple(element);
+        continue;
+      }
 
       std::string inferred_type("");
 
