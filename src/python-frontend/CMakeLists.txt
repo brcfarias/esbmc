@@ -9,12 +9,15 @@
          ACC_HEADERS_INTO ${CMAKE_CURRENT_BINARY_DIR}/pythonastgen.h
          LIST_DIRECTORIES FALSE
   )
+  
+set(PYTHON_INCLUDE_DIR /usr/include/python3.10)
 
 add_library(pythonfrontend STATIC
             python_language.cpp
             python_converter.cpp
             pythonastgen.c
             python_frontend_types.cpp
+            python_module.cpp
             symbol_id.cpp
             ${CMAKE_SOURCE_DIR}/src/ansi-c/parse_float.cpp
             ${CMAKE_SOURCE_DIR}/src/ansi-c/convert_float_literal.cpp)
@@ -22,7 +25,8 @@ add_library(pythonfrontend STATIC
 target_include_directories(pythonfrontend
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
     PRIVATE ${CMAKE_BINARY_DIR}/src/python-frontend
+    PRIVATE ${PYTHON_INCLUDE_DIR}
     PUBLIC ${Boost_INCLUDE_DIRS}
 )
 
-target_link_libraries(pythonfrontend fmt::fmt nlohmann_json::nlohmann_json bigint)
+target_link_libraries(pythonfrontend fmt::fmt nlohmann_json::nlohmann_json bigint /home/bruno/projects/esbmc/libpython/lib/libpython3.10.a)
