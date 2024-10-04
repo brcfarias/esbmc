@@ -113,12 +113,16 @@ static typet build_array(const typet &sub_type, const size_t size)
 // Convert Python/AST types to irep types
 typet python_converter::get_typet(const std::string &ast_type, size_t type_size)
 {
-  if (ast_type == "float")
-    return double_type();
   if (ast_type == "int" || ast_type == "GeneralizedIndex")
     /* FIXME: We need to map 'int' to another irep type that provides unlimited precision
 	https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex */
     return int_type();
+  if (ast_type == "bigint")
+  {
+	  return signedbv_typet(512);
+  }
+  if (ast_type == "float")
+    return double_type();
   if (ast_type == "uint64" || ast_type == "Epoch" || ast_type == "Slot")
     return long_long_uint_type();
   if (ast_type == "bool")
@@ -1028,6 +1032,18 @@ exprt python_converter::get_function_call(const nlohmann::json &element)
 
 exprt python_converter::get_literal(const nlohmann::json &element)
 {
+  DUMP_OBJECT(element);
+
+  if (element.contains("esbmc_type_annotation") && element["esbmc_type_annotation"] == "bigint")
+  {
+	  BigInt bg(element["value"].get<std::string>().c_str());
+	  char buffer[256];
+	  printf("n: %s\n", bg.as_string(buffer, 256));
+	  printf("int width: %d\n", config.ansi_c.int_width);
+	  printf("l: %u\n", bg.get_length() * config.ansi_c.int_width);
+	  return from_integer(bg, signedbv_typet(bg.get_length() * config.ansi_c.int_width));
+  }
+
   auto value = element["value"];
 
   // integer literals
@@ -1531,6 +1547,7 @@ void python_converter::get_var_assign(
   {
     is_converting_rhs = true;
     rhs = get_expr(ast_node["value"]);
+    rhs.dump();
     has_value = true;
     is_converting_rhs = false;
   }
