@@ -146,6 +146,11 @@ public:
   BigInt &operator=(BigInt const &);
   BigInt &operator=(BigInt &&);
 
+  unsigned get_length()
+  {
+    return length;
+  }
+
   // Input conversion from text.
 
   char const *scan_on(char const *, onedig_t = 10);

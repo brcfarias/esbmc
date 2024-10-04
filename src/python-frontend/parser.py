@@ -53,6 +53,10 @@ def add_type_annotation(node):
     value_node = node.value
     if isinstance(value_node, ast.Str):
         value_node.esbmc_type_annotation = "str"
+    elif isinstance(value_node, ast.Constant) and isinstance(value_node.value, int):
+        if value_node.value > 0xFFFFFFFFFFFFFFFF:
+            value_node.esbmc_type_annotation = "bigint"
+            value_node.value = str(value_node.value)
     elif isinstance(value_node, ast.Bytes):
         value_node.esbmc_type_annotation = "bytes"
         value_node.encoded_bytes = encode_bytes(value_node.value)
