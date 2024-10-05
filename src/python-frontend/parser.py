@@ -189,6 +189,14 @@ def detect_and_process_submodules(node, imported_modules, output_dir):
                         pass
 
 
+def process_assert(node):
+    if isinstance(node.test, ast.Compare):
+        for comparator in node.test.comparators:
+            if isinstance(comparator, ast.Constant) and isinstance(comparator.value, int):
+                if comparator.value > 0xFFFFFFFFFFFFFFFF:
+                    comparator.esbmc_type_annotation = "bigint"
+                    comparator.value = str(comparator.value)
+
 def main():
     check_usage()
     filename = sys.argv[1]
@@ -218,6 +226,8 @@ def main():
         elif isinstance(node, ast.Assign):
             # Add type annotation on assignments
             add_type_annotation(node)
+        elif isinstance(node, ast.Assert):
+            process_assert(node)
         elif isinstance(node, ast.Attribute):
             # Detect and process submodule usage
             detect_and_process_submodules(node, imported_modules, output_dir)

@@ -119,7 +119,7 @@ typet python_converter::get_typet(const std::string &ast_type, size_t type_size)
     return int_type();
   if (ast_type == "bigint")
   {
-	  return signedbv_typet(512);
+	  return unsignedbv_typet(512);
   }
   if (ast_type == "float")
     return double_type();
@@ -1041,7 +1041,7 @@ exprt python_converter::get_literal(const nlohmann::json &element)
 	  printf("n: %s\n", bg.as_string(buffer, 256));
 	  printf("int width: %d\n", config.ansi_c.int_width);
 	  printf("l: %u\n", bg.get_length() * config.ansi_c.int_width);
-	  return from_integer(bg, signedbv_typet(bg.get_length() * config.ansi_c.int_width));
+	  return from_integer(bg, unsignedbv_typet(bg.get_length() * config.ansi_c.int_width));
   }
 
   auto value = element["value"];
