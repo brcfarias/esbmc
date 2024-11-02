@@ -42,7 +42,7 @@ public:
   void add_type_annotation(const std::string &func_name)
   {
     // Add type annotations to global scope variables
-    annotate_global_scope();
+    // annotate_global_scope();
     current_line_ = 0;
 
     for (Json &elem : ast_["body"])
@@ -144,6 +144,9 @@ private:
         if (left_op.empty() && body.contains("args"))
           left_op = find_annotated_assign(lhs["id"], body["args"]["args"]);
 
+        if (left_op.empty())
+          left_op = find_annotated_assign(lhs["id"], ast_["body"], true);
+
         if (!left_op.empty())
           type = left_op["annotation"]["id"];
       }
@@ -193,8 +196,9 @@ private:
     throw std::runtime_error(oss.str());
   }
 
-  std::string get_type_from_lhs(const std::string &id, Json &body)
+  std::string get_type_from_lhs(const std::string &id, const Json &body)
   {
+	DUMP_OBJECT(body);
     // Search for LHS annotation in the current scope (e.g. while/if block)
     Json node = find_annotated_assign(id, body["body"]);
 
@@ -209,7 +213,7 @@ private:
     return node.empty() ? "" : node["annotation"]["id"];
   }
 
-  std::string get_type_from_rhs_variable(const Json &element, Json &body)
+  std::string get_type_from_rhs_variable(const Json &element, const Json &body)
   {
     const auto &value_type = element["value"]["_type"];
     std::string rhs_var_name = value_type == "Name"
@@ -295,6 +299,72 @@ private:
     return type;
   }
 
+  void annotate_node(Json &element, const Json &body)
+  {
+	std::string inferred_type("");
+	auto &stmt_type = element["_type"];
+    const auto &value_type = element["value"]["_type"];
+
+    // Get type from RHS constant
+    if (value_type == "Constant")
+    {
+      inferred_type = get_type_from_constant(element["value"]);
+    }
+    else if (value_type == "List")
+    {
+      inferred_type = "list";
+    }
+    else if (
+      value_type == "UnaryOp" && element["value"]["operand"]["_type"] ==
+                                   "Constant") // Handle negative numbers
+    {
+      inferred_type = get_type_from_constant(element["value"]["operand"]);
+    }
+
+    // Get type from RHS variable
+    else if (value_type == "Name" || value_type == "Subscript")
+    {
+      inferred_type = get_type_from_rhs_variable(element, body);
+    }
+
+    // Get type from RHS binary expression
+    else if (value_type == "BinOp")
+    {
+      std::string got_type = get_type_from_binary_expr(element, body);
+      if (!got_type.empty())
+        inferred_type = got_type;
+    }
+
+    // Get type from top-level functions
+    else if (
+      value_type == "Call" && element["value"]["func"]["_type"] == "Name" &&
+      !is_model_func(element["value"]["func"]["id"]))
+    {
+      inferred_type = get_type_from_call(element);
+    }
+
+    // Get type from methods
+    else if (
+      value_type == "Call" && element["value"]["func"]["_type"] == "Attribute")
+    {
+      inferred_type = get_type_from_method(element["value"]);
+    }
+    else
+      return;
+
+    if (inferred_type.empty())
+    {
+      std::ostringstream oss;
+      oss << "Type inference failed for "
+          << stmt_type.template get<std::string>() << " at line "
+          << current_line_;
+
+      throw std::runtime_error(oss.str());
+    }
+
+    update_assignment_node(element, inferred_type);
+  }
+
   void add_annotation(Json &body)
   {
     for (auto &element : body["body"])
@@ -306,81 +376,25 @@ private:
       if (stmt_type == "If" || stmt_type == "While")
       {
         add_annotation(element);
-        continue;
+        return;
       }
 
       if (stmt_type != "Assign" || !element["type_comment"].is_null())
-        continue;
-
-      std::string inferred_type("");
+        return;
 
       // Check if LHS was previously annotated
-      if (
-        element.contains("targets") && element["targets"][0]["_type"] == "Name")
-      {
-        inferred_type = get_type_from_lhs(element["targets"][0]["id"], body);
-      }
+//      if (
+//        element.contains("targets") && element["targets"][0]["_type"] == "Name")
+//      {
+//        std::string inferred_type = get_type_from_lhs(element["targets"][0]["id"], body);
+//        if (!inferred_type.empty())
+//        {
+//          update_assignment_node(element, inferred_type);
+//          continue;
+//        }
+//      }
 
-      const auto &value_type = element["value"]["_type"];
-
-      // Get type from RHS constant
-      if (value_type == "Constant")
-      {
-        inferred_type = get_type_from_constant(element["value"]);
-      }
-      else if (value_type == "List")
-      {
-        inferred_type = "list";
-      }
-      else if (
-        value_type == "UnaryOp" && element["value"]["operand"]["_type"] ==
-                                     "Constant") // Handle negative numbers
-      {
-        inferred_type = get_type_from_constant(element["value"]["operand"]);
-      }
-
-      // Get type from RHS variable
-      else if (value_type == "Name" || value_type == "Subscript")
-      {
-        inferred_type = get_type_from_rhs_variable(element, body);
-      }
-
-      // Get type from RHS binary expression
-      else if (value_type == "BinOp")
-      {
-        std::string got_type = get_type_from_binary_expr(element, body);
-        if (!got_type.empty())
-          inferred_type = got_type;
-      }
-
-      // Get type from top-level functions
-      else if (
-        value_type == "Call" && element["value"]["func"]["_type"] == "Name" &&
-        !is_model_func(element["value"]["func"]["id"]))
-      {
-        inferred_type = get_type_from_call(element);
-      }
-
-      // Get type from methods
-      else if (
-        value_type == "Call" &&
-        element["value"]["func"]["_type"] == "Attribute")
-      {
-        inferred_type = get_type_from_method(element["value"]);
-      }
-      else
-        continue;
-
-      if (inferred_type.empty())
-      {
-        std::ostringstream oss;
-        oss << "Type inference failed for "
-            << stmt_type.template get<std::string>() << " at line " << current_line_;
-
-        throw std::runtime_error(oss.str());
-      }
-
-      update_assignment_node(element, inferred_type);
+      annotate_node(element, body);
     }
   }
 
@@ -433,7 +447,8 @@ private:
     element.erase("type_comment");
 
     // Update value fields with the correct offsets
-    auto update_offsets = [&inferred_type](Json &value) {
+    auto update_offsets = [&inferred_type](Json &value)
+    {
       value["col_offset"] =
         value["col_offset"].template get<int>() + inferred_type.size() + 1;
       value["end_col_offset"] =
@@ -470,17 +485,29 @@ private:
   }
 
   const Json
-  find_annotated_assign(const std::string &node_name, const Json &body) const
+  find_annotated_assign(const std::string &node_name, const Json &body, bool annotate=false)
   {
     for (const Json &elem : body)
     {
+      if (elem["_type"] == "arg" && elem["arg"] == node_name)
+        return elem;
+
       if (
-        elem.contains("_type") &&
-        ((elem["_type"] == "AnnAssign" && elem.contains("target") &&
-          elem["target"].contains("id") &&
-          elem["target"]["id"].template get<std::string>() == node_name) ||
-         (elem["_type"] == "arg" && elem["arg"] == node_name)))
+        elem.contains("_type") && elem["_type"] == "AnnAssign" &&
+        elem.contains("target") && elem["target"].contains("id") &&
+        elem["target"]["id"].template get<std::string>() == node_name)
+        return elem;
+
+      if (
+        elem.contains("_type") && elem["_type"] == "Assign" &&
+        elem.contains("targets") && elem["targets"][0].contains("id") &&
+        elem["targets"][0]["id"].template get<std::string>() == node_name)
       {
+        // We are referring a non-annotated variable. So try to annotate it.
+        DUMP_OBJECT(elem);
+        if (annotate)
+        	annotate_node(const_cast<Json&>(elem), body);
+        DUMP_OBJECT(elem);
         return elem;
       }
     }

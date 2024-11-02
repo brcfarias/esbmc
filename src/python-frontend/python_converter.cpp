@@ -2141,8 +2141,10 @@ void python_converter::convert()
     for (const auto &elem : ast_json["body"])
     {
       StatementType type = get_statement_type(elem);
-      if (type == StatementType::VARIABLE_ASSIGN)
+      if (type == StatementType::VARIABLE_ASSIGN && elem["_type"] == "AnnAssign") {
+    	DUMP_OBJECT(elem);
         get_var_assign(elem, block);
+      }
       else if (type == StatementType::CLASS_DEFINITION)
         get_class_definition(elem, block);
     }
