@@ -119,7 +119,7 @@ typet python_converter::get_typet(const std::string &ast_type, size_t type_size)
     return int_type();
   if (ast_type == "bigint")
   {
-	  return unsignedbv_typet(512);
+    return unsignedbv_typet(512);
   }
   if (ast_type == "float")
     return double_type();
@@ -1032,11 +1032,14 @@ exprt python_converter::get_function_call(const nlohmann::json &element)
 
 exprt python_converter::get_literal(const nlohmann::json &element)
 {
-  if (element.contains("esbmc_type_annotation") && element["esbmc_type_annotation"] == "bigint")
+  if (
+    element.contains("esbmc_type_annotation") &&
+    element["esbmc_type_annotation"] == "bigint")
   {
-	  BigInt bg(element["value"].get<std::string>().c_str());
-	  char buffer[256];
-	  return from_integer(bg, unsignedbv_typet(bg.get_length() * config.ansi_c.int_width));
+    BigInt bg(element["value"].get<std::string>().c_str());
+    char buffer[256];
+    return from_integer(
+      bg, unsignedbv_typet(bg.get_length() * config.ansi_c.int_width));
   }
 
   auto value = element["value"];
