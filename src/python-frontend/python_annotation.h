@@ -168,7 +168,6 @@ private:
     if (element.contains("esbmc_type_annotation"))
       return element["esbmc_type_annotation"].template get<std::string>();
 
-
     auto rhs = element["value"];
 
     if (rhs.is_number_integer() || rhs.is_number_unsigned())
