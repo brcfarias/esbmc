@@ -119,7 +119,7 @@ typet python_converter::get_typet(const std::string &ast_type, size_t type_size)
     return int_type();
   if (ast_type == "bigint")
   {
-    return unsignedbv_typet(512);
+    return signedbv_typet(type_size);
   }
   if (ast_type == "float")
     return double_type();
@@ -1033,13 +1033,12 @@ exprt python_converter::get_function_call(const nlohmann::json &element)
 exprt python_converter::get_literal(const nlohmann::json &element)
 {
   if (
-    element.contains("esbmc_type_annotation") &&
-    element["esbmc_type_annotation"] == "bigint")
+    element.contains("esbmc_type_id") &&
+    element["esbmc_type_id"] == "bigint")
   {
     BigInt bg(element["value"].get<std::string>().c_str());
-    char buffer[256];
-    return from_integer(
-      bg, unsignedbv_typet(bg.get_length() * config.ansi_c.int_width));
+    const int type_size = element["esbmc_type_size"];
+    return from_integer(bg, unsignedbv_typet(type_size));
   }
 
   auto value = element["value"];
@@ -1380,6 +1379,8 @@ size_t get_type_size(const nlohmann::json &ast_node)
       std::vector<uint8_t> decoded = base64_decode(str);
       type_size = decoded.size();
     }
+    else if (ast_node["value"].contains("esbmc_type_size"))
+      type_size = ast_node["value"]["esbmc_type_size"];
     else if (ast_node["value"]["value"].is_string())
       type_size = ast_node["value"]["value"].get<std::string>().size();
   }
@@ -1463,6 +1464,8 @@ void python_converter::get_var_assign(
     size_t type_size = get_type_size(ast_node);
     if (ast_node["annotation"]["_type"] == "Subscript")
       lhs_type = ast_node["annotation"]["value"]["id"];
+    else if (ast_node["value"].contains("esbmc_type_id"))
+      lhs_type = ast_node["value"]["esbmc_type_id"];
     else
       lhs_type = ast_node["annotation"]["id"];
 
