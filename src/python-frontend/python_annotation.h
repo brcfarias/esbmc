@@ -165,7 +165,6 @@ private:
 
   std::string get_type_from_constant(const Json &element)
   {
-    printf("rhs: %s\n", element["value"].dump(4).c_str());
     if (element.contains("esbmc_type_annotation"))
       return element["esbmc_type_annotation"].template get<std::string>();
 

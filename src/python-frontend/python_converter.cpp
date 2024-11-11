@@ -1032,15 +1032,10 @@ exprt python_converter::get_function_call(const nlohmann::json &element)
 
 exprt python_converter::get_literal(const nlohmann::json &element)
 {
-  DUMP_OBJECT(element);
-
   if (element.contains("esbmc_type_annotation") && element["esbmc_type_annotation"] == "bigint")
   {
 	  BigInt bg(element["value"].get<std::string>().c_str());
 	  char buffer[256];
-	  printf("n: %s\n", bg.as_string(buffer, 256));
-	  printf("int width: %d\n", config.ansi_c.int_width);
-	  printf("l: %u\n", bg.get_length() * config.ansi_c.int_width);
 	  return from_integer(bg, unsignedbv_typet(bg.get_length() * config.ansi_c.int_width));
   }
 
@@ -1547,7 +1542,6 @@ void python_converter::get_var_assign(
   {
     is_converting_rhs = true;
     rhs = get_expr(ast_node["value"]);
-    rhs.dump();
     has_value = true;
     is_converting_rhs = false;
   }
