@@ -196,6 +196,7 @@ def process_assert(node):
             if isinstance(comparator, ast.Constant) and isinstance(comparator.value, int):
                 if comparator.value > 0xFFFFFFFFFFFFFFFF:
                     comparator.esbmc_type_id = "bigint"
+                    comparator.esbmc_type_size = comparator.value.bit_length()
                     comparator.value = str(comparator.value)
 
 def main():
