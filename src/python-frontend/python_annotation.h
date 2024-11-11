@@ -165,8 +165,13 @@ private:
 
   std::string get_type_from_constant(const Json &element)
   {
-    if (element.contains("esbmc_type_annotation"))
-      return element["esbmc_type_annotation"].template get<std::string>();
+    if (element.contains("esbmc_type_id"))
+    {
+      if (element["esbmc_type_id"] == "bigint")
+        return "int";
+
+      return element["esbmc_type_id"].template get<std::string>();
+    }
 
     auto rhs = element["value"];
 

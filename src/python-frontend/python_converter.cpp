@@ -114,13 +114,11 @@ static typet build_array(const typet &sub_type, const size_t size)
 typet python_converter::get_typet(const std::string &ast_type, size_t type_size)
 {
   if (ast_type == "int" || ast_type == "GeneralizedIndex")
-    /* FIXME: We need to map 'int' to another irep type that provides unlimited precision
-	https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex */
-    return int_type();
-  if (ast_type == "bigint")
+	return (type_size) ? unsignedbv_typet(type_size) : int_type();
+  /*if (ast_type == "bigint")
   {
     return signedbv_typet(type_size);
-  }
+  }*/
   if (ast_type == "float")
     return double_type();
   if (ast_type == "uint64" || ast_type == "Epoch" || ast_type == "Slot")
@@ -1464,8 +1462,8 @@ void python_converter::get_var_assign(
     size_t type_size = get_type_size(ast_node);
     if (ast_node["annotation"]["_type"] == "Subscript")
       lhs_type = ast_node["annotation"]["value"]["id"];
-    else if (ast_node["value"].contains("esbmc_type_id"))
-      lhs_type = ast_node["value"]["esbmc_type_id"];
+    /*else if (ast_node["value"].contains("esbmc_type_id"))
+      lhs_type = ast_node["value"]["esbmc_type_id"];*/
     else
       lhs_type = ast_node["annotation"]["id"];
 
