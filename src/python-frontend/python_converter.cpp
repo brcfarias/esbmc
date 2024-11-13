@@ -1032,7 +1032,7 @@ exprt python_converter::get_literal(const nlohmann::json &element)
   {
     BigInt bg(element["value"].get<std::string>().c_str());
     const int type_size = element["esbmc_type_size"];
-    return from_integer(bg, unsignedbv_typet(type_size));
+    return from_integer(bg, bigint_typet(type_size));
   }
 
   auto value = element["value"];
