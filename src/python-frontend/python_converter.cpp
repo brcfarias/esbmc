@@ -113,12 +113,14 @@ static typet build_array(const typet &sub_type, const size_t size)
 // Convert Python/AST types to irep types
 typet python_converter::get_typet(const std::string &ast_type, size_t type_size)
 {
+  if (ast_type == "int" || ast_type == "GeneralizedIndex")
+	return (type_size) ? unsignedbv_typet(type_size) : int_type();
+  /*if (ast_type == "bigint")
+  {
+    return signedbv_typet(type_size);
+  }*/
   if (ast_type == "float")
     return double_type();
-  if (ast_type == "int" || ast_type == "GeneralizedIndex")
-    /* FIXME: We need to map 'int' to another irep type that provides unlimited precision
-	https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex */
-    return int_type();
   if (ast_type == "uint64" || ast_type == "Epoch" || ast_type == "Slot")
     return long_long_uint_type();
   if (ast_type == "bool")
@@ -1028,6 +1030,15 @@ exprt python_converter::get_function_call(const nlohmann::json &element)
 
 exprt python_converter::get_literal(const nlohmann::json &element)
 {
+  if (
+    element.contains("esbmc_type_id") &&
+    element["esbmc_type_id"] == "bigint")
+  {
+    BigInt bg(element["value"].get<std::string>().c_str());
+    const int type_size = element["esbmc_type_size"];
+    return from_integer(bg, unsignedbv_typet(type_size));
+  }
+
   auto value = element["value"];
 
   // integer literals
@@ -1366,6 +1377,8 @@ size_t get_type_size(const nlohmann::json &ast_node)
       std::vector<uint8_t> decoded = base64_decode(str);
       type_size = decoded.size();
     }
+    else if (ast_node["value"].contains("esbmc_type_size"))
+      type_size = ast_node["value"]["esbmc_type_size"];
     else if (ast_node["value"]["value"].is_string())
       type_size = ast_node["value"]["value"].get<std::string>().size();
   }
@@ -1449,6 +1462,8 @@ void python_converter::get_var_assign(
     size_t type_size = get_type_size(ast_node);
     if (ast_node["annotation"]["_type"] == "Subscript")
       lhs_type = ast_node["annotation"]["value"]["id"];
+    /*else if (ast_node["value"].contains("esbmc_type_id"))
+      lhs_type = ast_node["value"]["esbmc_type_id"];*/
     else
       lhs_type = ast_node["annotation"]["id"];
 

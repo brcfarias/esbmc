@@ -52,9 +52,14 @@ def encode_bytes(value):
 def add_type_annotation(node):
     value_node = node.value
     if isinstance(value_node, ast.Str):
-        value_node.esbmc_type_annotation = "str"
+        value_node.esbmc_type_id = "str"
+    elif isinstance(value_node, ast.Constant) and isinstance(value_node.value, int):
+        if value_node.value > 0xFFFFFFFFFFFFFFFF:
+            value_node.esbmc_type_id = "bigint"
+            value_node.esbmc_type_size = value_node.value.bit_length()
+            value_node.value = str(value_node.value)
     elif isinstance(value_node, ast.Bytes):
-        value_node.esbmc_type_annotation = "bytes"
+        value_node.esbmc_type_id = "bytes"
         value_node.encoded_bytes = encode_bytes(value_node.value)
 
 
@@ -185,6 +190,15 @@ def detect_and_process_submodules(node, imported_modules, output_dir):
                         pass
 
 
+def process_assert(node):
+    if isinstance(node.test, ast.Compare):
+        for comparator in node.test.comparators:
+            if isinstance(comparator, ast.Constant) and isinstance(comparator.value, int):
+                if comparator.value > 0xFFFFFFFFFFFFFFFF:
+                    comparator.esbmc_type_id = "bigint"
+                    comparator.esbmc_type_size = comparator.value.bit_length()
+                    comparator.value = str(comparator.value)
+
 def main():
     check_usage()
     filename = sys.argv[1]
@@ -214,6 +228,8 @@ def main():
         elif isinstance(node, ast.Assign):
             # Add type annotation on assignments
             add_type_annotation(node)
+        elif isinstance(node, ast.Assert):
+            process_assert(node)
         elif isinstance(node, ast.Attribute):
             # Detect and process submodule usage
             detect_and_process_submodules(node, imported_modules, output_dir)
