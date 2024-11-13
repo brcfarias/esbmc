@@ -713,4 +713,13 @@ public:
   }
 };
 
+class bigint_typet : public typet
+{
+public:
+  bigint_typet(size_t width) : typet(t_bigint)
+  {
+    set(a_width, width);
+  }
+};
+
 #endif

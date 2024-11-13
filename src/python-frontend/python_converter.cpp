@@ -114,11 +114,7 @@ static typet build_array(const typet &sub_type, const size_t size)
 typet python_converter::get_typet(const std::string &ast_type, size_t type_size)
 {
   if (ast_type == "int" || ast_type == "GeneralizedIndex")
-	return (type_size) ? unsignedbv_typet(type_size) : int_type();
-  /*if (ast_type == "bigint")
-  {
-    return signedbv_typet(type_size);
-  }*/
+	return (type_size) ? bigint_typet(type_size) : bigint_typet(config.ansi_c.int_width);
   if (ast_type == "float")
     return double_type();
   if (ast_type == "uint64" || ast_type == "Epoch" || ast_type == "Slot")
@@ -1043,7 +1039,7 @@ exprt python_converter::get_literal(const nlohmann::json &element)
 
   // integer literals
   if (value.is_number_integer())
-    return from_integer(value.get<int>(), int_type());
+    return from_integer(value.get<int>(), bigint_typet(config.ansi_c.int_width));
 
   // bool literals
   if (value.is_boolean())

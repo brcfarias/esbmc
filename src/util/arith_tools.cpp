@@ -48,7 +48,7 @@ exprt from_integer(const BigInt &int_value, const typet &type)
 
   const irep_idt &type_id = type.id();
 
-  if (type_id == "unsignedbv" || type_id == "signedbv")
+  if (type_id == "unsignedbv" || type_id == "signedbv" || type_id == "bigint")
   {
     expr.value(integer2binary(int_value, bv_width(type)));
     return expr;
