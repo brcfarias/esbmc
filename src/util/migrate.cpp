@@ -1957,14 +1957,17 @@ typet migrate_type_back(const type2tc &ref)
   case type2t::unsignedbv_id:
   {
     const unsignedbv_type2t &ref2 = to_unsignedbv_type(ref);
-
     return unsignedbv_typet(ref2.width);
   }
   case type2t::signedbv_id:
   {
     const signedbv_type2t &ref2 = to_signedbv_type(ref);
-
     return signedbv_typet(ref2.width);
+  }
+  case type2t::bigint_id:
+  {
+	const bigint_type2t &ref2 = to_bigint_type(ref);
+	return bigint_typet(ref2.width);
   }
   case type2t::fixedbv_id:
   {

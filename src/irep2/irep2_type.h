@@ -735,6 +735,7 @@ type_macros(vector);
 type_macros(pointer);
 type_macros(unsignedbv);
 type_macros(signedbv);
+type_macros(bigint);
 type_macros(fixedbv);
 type_macros(floatbv);
 type_macros(cpp_name);
