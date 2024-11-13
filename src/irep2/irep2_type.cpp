@@ -25,6 +25,7 @@ static const char *type_names[] = {
   "pointer",
   "unsignedbv",
   "signedbv",
+  "bigint",
   "fixedbv",
   "floatbv",
   "cpp_name"};

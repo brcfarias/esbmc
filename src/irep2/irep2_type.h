@@ -14,6 +14,7 @@ class union_type2t;
 class bv_type2t;
 class unsignedbv_type2t;
 class signedbv_type2t;
+class bigint_type2t;
 class code_type2t;
 class array_type2t;
 class vector_type2t;
@@ -308,6 +309,7 @@ irep_typedefs(struct, struct_union_data);
 irep_typedefs(union, struct_union_data);
 irep_typedefs(unsignedbv, bv_data);
 irep_typedefs(signedbv, bv_data);
+irep_typedefs(bigint, bv_data);
 irep_typedefs(code, code_data);
 irep_typedefs(array, array_data);
 irep_typedefs(pointer, pointer_data);
@@ -469,6 +471,17 @@ public:
   {
   }
   signedbv_type2t(const signedbv_type2t &ref) = default;
+
+  static std::string field_names[esbmct::num_type_fields];
+};
+
+class bigint_type2t : public signedbv_type_methods
+{
+public:
+  bigint_type2t(signed int width) : signedbv_type_methods(bigint_id, width)
+  {
+  }
+  bigint_type2t(const bigint_type2t &ref) = default;
 
   static std::string field_names[esbmct::num_type_fields];
 };

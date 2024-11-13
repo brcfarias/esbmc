@@ -422,6 +422,7 @@ public:
     pointer_id,
     unsignedbv_id,
     signedbv_id,
+	bigint_id,
     fixedbv_id,
     floatbv_id,
     cpp_name_id,

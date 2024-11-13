@@ -84,6 +84,13 @@ static type2tc migrate_type0(const typet &type)
     return unsignedbv_type2tc(iwidth);
   }
 
+  if (type.id() == typet::t_bigint)
+  {
+    irep_idt width = type.width();
+    unsigned int iwidth = strtol(width.as_string().c_str(), nullptr, 10);
+    return bigint_type2tc(iwidth);
+  }
+
   if (type.id() == "c_enum" || type.id() == "incomplete_c_enum")
   {
     // 6.7.2.2.3 of C99 says enumeration values shall have "int" types.
