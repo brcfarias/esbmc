@@ -381,6 +381,7 @@ bool goto_inlinet::inline_instruction(
   if (it->is_function_call())
   {
     const code_function_call2t &call = to_code_function_call2t(it->code);
+    call.dump();
 
     if (is_symbol2t(call.function))
     {

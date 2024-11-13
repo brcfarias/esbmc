@@ -201,6 +201,7 @@ void goto_symex_statet::assignment(expr2tc &lhs, const expr2tc &rhs)
 
   expr2tc l1_lhs = lhs;
 
+  rhs->dump();
   expr2tc const_value = constant_propagation(rhs) ? rhs : expr2tc();
   level2.make_assignment(lhs, const_value, rhs);
 
@@ -252,10 +253,14 @@ void goto_symex_statet::rename(expr2tc &expr)
 
   if (is_symbol2t(expr))
   {
+	expr->dump();
     type2tc origtype = expr->type;
     top().level1.rename(expr);
+    expr->dump();
     level2.rename(expr);
+    expr->dump();
     fixup_renamed_type(expr, origtype);
+    expr->dump();
   }
   else if (is_address_of2t(expr))
   {

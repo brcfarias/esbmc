@@ -112,6 +112,7 @@ void renaming::level1t::rename(expr2tc &expr)
 
 void renaming::level2t::rename(expr2tc &expr)
 {
+  expr->dump();
   // rename all the symbols with their last known value
   if (is_nil_expr(expr))
     return;
@@ -314,6 +315,8 @@ void renaming::level2t::make_assignment(
   symbol.node_num = entry.node_id;
 
   entry.constant = const_value;
+  lhs_symbol->dump();
+  const_value->dump();
 }
 
 void renaming::level2t::rename_to_record(expr2tc &expr, const name_record &rec)

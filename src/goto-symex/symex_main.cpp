@@ -82,10 +82,18 @@ void goto_symext::claim(const expr2tc &claim_expr, const std::string &msg)
   total_claims++;
 
   expr2tc new_expr = claim_expr;
+  printf("before rename:\n");
+  new_expr->dump();
   cur_state->rename(new_expr);
+  printf("after rename:\n");
+  new_expr->dump();
 
   // first try simplifier on it
+  printf("before simpl:\n");
+  new_expr->dump();
   do_simplify(new_expr);
+  printf("after simpl:\n");
+  new_expr->dump();
 
   if (is_true(new_expr))
     return;
@@ -452,6 +460,9 @@ void goto_symext::symex_assert()
   replace_dynamic_allocation(tmp);
 
   replace_races_check(tmp);
+
+  printf("tmp:\n");
+  tmp->dump();
 
   claim(tmp, msg);
 }

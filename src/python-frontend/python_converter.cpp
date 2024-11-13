@@ -1998,6 +1998,8 @@ exprt python_converter::get_block(const nlohmann::json &ast_block)
       exprt test = get_expr(element["test"]);
       code_assertt assert_code;
       assert_code.assertion() = test;
+      printf("assert code\n");
+      assert_code.dump();
       block.move_to_operands(assert_code);
       break;
     }
