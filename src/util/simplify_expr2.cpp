@@ -303,7 +303,9 @@ static expr2tc simplify_arith_2ops(
     simpl_res = TFunctor<BigInt>::simplify(
       simplied_side_1, simplied_side_2, is_constant, get_value);
   }
-  else if (is_bv_type(simplied_side_1) || is_bv_type(simplied_side_2))
+  else if (
+    is_bv_type(simplied_side_1) || is_bv_type(simplied_side_2) ||
+    is_unbounded_type(simplied_side_1) || is_unbounded_type(simplied_side_2))
   {
     std::function<bool(const expr2tc &)> is_constant =
       (bool (*)(const expr2tc &)) & is_constant_int2t;
@@ -414,6 +416,13 @@ static type2tc common_arith_op2_type(expr2tc &e, expr2tc &f)
   unsigned w2 = b->get_width();
   bool u1 = a->type_id == type2t::unsignedbv_id;
   bool u2 = b->type_id == type2t::unsignedbv_id;
+
+  if (!u1 || !u2)
+  {
+    u1 = a->type_id == type2t::bigint_id;
+    u2 = b->type_id == type2t::bigint_id;
+  }
+
   if (u1 == u2 && w1 == w2) /* no type-cast required */
     return a;
   if (u1 == u2 ? w1 > w2 : w1 >= w2 && u1) /* common type is that of e */
@@ -427,7 +436,10 @@ static type2tc common_arith_op2_type(expr2tc &e, expr2tc &f)
     return b;
   }
   /* common type is neither, so type-cast both operands */
-  type2tc t = get_uint_type(std::max(w1, w2));
+  type2tc t =
+    (a->type_id == type2t::bigint_id || b->type_id == type2t::bigint_id)
+      ? get_bigint_type(std::max(w1, w2))
+      : get_uint_type(std::max(w1, w2));
   e = typecast2tc(t, e);
   f = typecast2tc(t, f);
   return t;

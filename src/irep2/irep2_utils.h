@@ -42,6 +42,11 @@ inline bool is_bv_type(const expr2tc &e)
   return is_bv_type(e->type);
 }
 
+inline bool is_unbounded_type(const expr2tc &e)
+{
+  return e->type->type_id == type2t::bigint_id;
+}
+
 /** Test whether type is a float/double. */
 inline bool is_fractional_type(const type2tc &t)
 {
@@ -59,7 +64,7 @@ inline bool is_number_type(const type2tc &t)
   return t->type_id == type2t::unsignedbv_id ||
          t->type_id == type2t::signedbv_id ||
          t->type_id == type2t::fixedbv_id || t->type_id == type2t::floatbv_id ||
-         t->type_id == type2t::bool_id;
+         t->type_id == type2t::bool_id || t->type_id == type2t::bigint_id;
 }
 
 inline bool is_number_type(const expr2tc &e)

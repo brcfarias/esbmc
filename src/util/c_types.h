@@ -71,6 +71,7 @@ type2tc get_int32_type();
 type2tc get_int64_type();
 type2tc get_uint_type(unsigned int sz);
 type2tc get_int_type(unsigned int sz);
+type2tc get_bigint_type(unsigned int sz);
 type2tc get_bool_type();
 type2tc get_empty_type();
 

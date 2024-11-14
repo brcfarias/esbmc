@@ -127,7 +127,7 @@ typet python_converter::get_typet(const std::string &ast_type, size_t type_size)
   {
     // TODO: Keep "bytes" as signed char instead of "int_type()", and cast to an 8-bit integer in [] operations
     // or consider modelling it with string_constantt.
-    return build_array(int_type(), type_size);
+    return build_array(bigint_typet(config.ansi_c.int_width), type_size);
   }
   if (ast_type == "str")
   {
@@ -149,8 +149,8 @@ std::string type_to_string(const typet &t)
 {
   if (t == double_type())
     return "float";
-  if (t == int_type())
-    return "int";
+  if (t == bigint_typet(config.ansi_c.int_width))
+    return "bigint";
   if (t == long_long_uint_type())
     return "uint64";
   if (t == bool_type())
@@ -162,7 +162,7 @@ std::string type_to_string(const typet &t)
     const array_typet &arr_type = static_cast<const array_typet &>(t);
     if (arr_type.subtype() == char_type())
       return "str";
-    if (arr_type.subtype() == int_type())
+    if (arr_type.subtype() == bigint_typet(config.ansi_c.int_width))
       return "bytes";
     if (arr_type.subtype().is_array())
       return type_to_string(arr_type.subtype());
@@ -174,7 +174,7 @@ std::string type_to_string(const typet &t)
 typet python_converter::get_typet(const nlohmann::json &elem)
 {
   if (elem.is_number_integer() || elem.is_number_unsigned())
-    return int_type();
+    return bigint_typet(config.ansi_c.int_width);
   else if (elem.is_boolean())
     return bool_type();
   else if (elem.is_number_float())
@@ -422,10 +422,10 @@ exprt python_converter::get_binary_operator_expr(const nlohmann::json &element)
       sideeffect.arguments().push_back(
         from_integer(str_size, long_uint_type())); // passing n to strncmp
       sideeffect.location() = get_location_from_decl(element);
-      sideeffect.type() = int_type();
+      sideeffect.type() = bigint_typet(config.ansi_c.int_width);
 
       lhs = sideeffect;
-      rhs = gen_zero(int_type());
+      rhs = gen_zero(bigint_typet(config.ansi_c.int_width));
     }
     // Strings concatenation
     else if (op == "Add")
@@ -861,7 +861,7 @@ exprt python_converter::get_function_call(const nlohmann::json &element)
       code_typet code_type;
       if (func_name == "__ESBMC_get_object_size")
       {
-        code_type.return_type() = int_type();
+        code_type.return_type() = /*int_type()*/bigint_typet(config.ansi_c.int_width);
         code_type.arguments().push_back(pointer_typet(empty_typet()));
       }
 

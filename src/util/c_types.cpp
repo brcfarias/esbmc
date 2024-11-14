@@ -370,6 +370,11 @@ type2tc get_uint_type(unsigned int sz)
   return unsignedbv_type2tc(sz);
 }
 
+type2tc get_bigint_type(unsigned int sz)
+{
+  return bigint_type2tc(sz);
+}
+
 type2tc get_int_type(unsigned int sz)
 {
   switch (sz)
