@@ -43,7 +43,11 @@ bool clang_c_adjust::adjust()
     if (symbol.is_type)
       continue;
 
+    printf("symbol before adjust: \n");
+    symbol.dump();
     adjust_symbol(symbol);
+    printf("symbol after adjust: \n");
+    symbol.dump();
   }
 
   return false;

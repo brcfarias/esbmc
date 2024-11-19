@@ -1168,6 +1168,10 @@ public:
   {
     return id() == id_unsignedbv;
   }
+  inline bool is_bigint() const
+  {
+	return id() == id_bigint;
+  }
   inline bool is_vector() const
   {
     return id() == id_vector;
@@ -1282,7 +1286,7 @@ public:
   static const irep_idt id_floatbv, id_incomplete_array, id_index, id_member;
   static const irep_idt id_not, id_notequal, id_pointer, id_signedbv;
   static const irep_idt id_struct, id_symbol, id_typecast, id_union;
-  static const irep_idt id_unsignedbv, id_vector;
+  static const irep_idt id_unsignedbv, id_bigint, id_vector;
 
   class dt
   {
