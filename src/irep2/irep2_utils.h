@@ -374,6 +374,7 @@ inline expr2tc gen_zero(const type2tc &type, bool array_as_array_of = false)
 
   case type2t::unsignedbv_id:
   case type2t::signedbv_id:
+  case type2t::bigint_id:
     return constant_int2tc(type, BigInt(0));
 
   case type2t::fixedbv_id:

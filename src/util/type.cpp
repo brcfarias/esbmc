@@ -11,7 +11,7 @@ bool is_number(const typet &type)
 {
   const std::string &id = type.id_string();
   return id == "complex" || id == "unsignedbv" || id == "signedbv" ||
-         id == "floatbv" || id == "fixedbv";
+         id == "floatbv" || id == "fixedbv" || id == "bigint";
 }
 
 bool is_array_like(const typet &type)
