@@ -115,10 +115,7 @@ typet python_converter::get_typet(const std::string &ast_type, size_t type_size)
 {
   if (ast_type == "int" || ast_type == "GeneralizedIndex")
 	return (type_size) ? unsignedbv_typet(type_size) : int_type();
-  /*if (ast_type == "bigint")
-  {
-    return signedbv_typet(type_size);
-  }*/
+
   if (ast_type == "float")
     return double_type();
   if (ast_type == "uint64" || ast_type == "Epoch" || ast_type == "Slot")
@@ -1998,8 +1995,6 @@ exprt python_converter::get_block(const nlohmann::json &ast_block)
       exprt test = get_expr(element["test"]);
       code_assertt assert_code;
       assert_code.assertion() = test;
-      printf("assert code\n");
-      assert_code.dump();
       block.move_to_operands(assert_code);
       break;
     }
