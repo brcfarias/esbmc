@@ -1131,7 +1131,6 @@ void goto_convertt::convert_assert(const codet &code, goto_programt &dest)
   t->location = code.location();
   t->location.property("assertion");
   t->location.user_provided(true);
-  t->dump();
 }
 
 void goto_convertt::convert_skip(const codet &code, goto_programt &dest)
