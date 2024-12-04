@@ -138,15 +138,9 @@ bool python_languaget::typecheck(contextt &context, const std::string &)
     exit(-2);
   }
 
-//  printf("context before:\n");
-//  context.dump();
-
   clang_cpp_adjust adjuster(context);
   if (adjuster.adjust())
     return true;
-
-//  printf("context after:\n");
-//  context.dump();
 
   return false;
 }
