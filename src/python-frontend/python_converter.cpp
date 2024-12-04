@@ -1459,8 +1459,6 @@ void python_converter::get_var_assign(
     size_t type_size = get_type_size(ast_node);
     if (ast_node["annotation"]["_type"] == "Subscript")
       lhs_type = ast_node["annotation"]["value"]["id"];
-    /*else if (ast_node["value"].contains("esbmc_type_id"))
-      lhs_type = ast_node["value"]["esbmc_type_id"];*/
     else
       lhs_type = ast_node["annotation"]["id"];
 
