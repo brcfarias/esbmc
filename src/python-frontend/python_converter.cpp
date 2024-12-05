@@ -1762,7 +1762,14 @@ void python_converter::get_function_definition(
     else if (arg_name == "cls")
       arg_type = pointer_typet(empty_typet());
     else
-      arg_type = get_typet(element["annotation"]["id"].get<std::string>());
+    {
+      size_t size = 0;
+      if (element["annotation"].contains("size"))
+        size = element["annotation"]["size"].get<size_t>();
+
+      arg_type =
+        get_typet(element["annotation"]["id"].get<std::string>(), size);
+    }
 
     if (arg_type.is_array())
       arg_type = gen_pointer_type(arg_type.subtype());

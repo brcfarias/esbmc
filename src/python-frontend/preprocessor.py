@@ -171,7 +171,8 @@ class Preprocessor(ast.NodeTransformer):
                 # Default to 32 bits if no calls are tracked
                 max_size = self.function_sizes.get(node.name, 32)
                 # Update annotation with size field
-                arg.annotation.size = max_size
+                if max_size > 32:
+                  arg.annotation.size = max_size
         return self.generic_visit(node)
 
 
