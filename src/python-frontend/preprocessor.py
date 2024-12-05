@@ -2,8 +2,11 @@ import ast
 
 class Preprocessor(ast.NodeTransformer):
     def __init__(self):
+        super().__init__()
         # Initialize with an empty target name
         self.target_name = ""
+        self.symbol_table = {}  # Tracks variable assignments
+        self.function_sizes = {}  # Tracks the maximum size for each function argument
 
     # for-range statements such as:
     #
@@ -111,13 +114,23 @@ class Preprocessor(ast.NodeTransformer):
 
         return node
 
+
     def visit_Name(self, node):
         # Replace variable names as needed in the for to while transformation
         if node.id == self.target_name:
             node.id = 'start'  # Replace the variable name with 'start'
         return node
 
-    # This method is responsible for visiting and transforming Call nodes in the AST.
+
+    def visit_Assign(self, node):
+        # Track variable assignments
+        if isinstance(node.targets[0], ast.Name):
+            var_name = node.targets[0].id
+            if isinstance(node.value, ast.Constant) and isinstance(node.value.value, int):
+                self.symbol_table[var_name] = node.value.value
+        return self.generic_visit(node)
+
+
     def visit_Call(self, node):
         # Transformation for int.from_bytes calls
         if isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name) and node.func.value.id == "int" and node.func.attr == "from_bytes":
@@ -126,5 +139,59 @@ class Preprocessor(ast.NodeTransformer):
                 node.args[1] = ast.NameConstant(value=True)
             else:
                 node.args[1] = ast.NameConstant(value=False)
+
+
+        # Handle large int arguments passed as constants or variables
+        if isinstance(node, ast.Call):
+            # Extract function name
+            func_name = node.func.id if isinstance(node.func, ast.Name) else None
+
+            if func_name:
+                for arg in node.args:
+                    value = None
+                    if isinstance(arg, ast.Constant) and isinstance(arg.value, int):
+                        value = arg.value
+                    elif isinstance(arg, ast.Name) and arg.id in self.symbol_table:
+                        value = self.symbol_table[arg.id]
+
+                    if value is not None and value > 0xFFFFFFFF:
+                        # Record the maximum size required for the function
+                        max_size = value.bit_length() # The size in bits required for the value
+                        self.function_sizes[func_name] = max(
+                            self.function_sizes.get(func_name, 0), max_size
+                        )
+
+        return self.generic_visit(node)
+
+
+    def visit_FunctionDef(self, node):
+        # Process function arguments and update annotations
+        for arg in node.args.args:
+            if isinstance(arg.annotation, ast.Name) and arg.annotation.id == "int":
+                # Default to 32 bits if no calls are tracked
+                max_size = self.function_sizes.get(node.name, 32)
+                # Update annotation with size field
+                arg.annotation.size = max_size
+        return self.generic_visit(node)
+
+
+    def visit_Module(self, node):
+        # First, visit assignments
+        for child in node.body:
+            if isinstance(child, ast.Assign):
+                self.visit(child)
+
+        # Then, visit function calls
+        for child in node.body:
+            if isinstance(child, ast.Expr) and isinstance(child.value, ast.Call):
+                self.visit(child)
+
+        # Finally, visit function definitions
+        for child in node.body:
+            if isinstance(child, ast.FunctionDef):
+                self.visit(child)
+
+        # Ensure other node types (like For) are visited
         self.generic_visit(node)
+
         return node
