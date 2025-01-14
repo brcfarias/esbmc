@@ -1418,6 +1418,14 @@ std::string python_converter::get_var_type(const std::string &var_name) const
 
 typet python_converter::get_list_type(const nlohmann::json &list_value)
 {
+  if (list_value["_type"] == "arg" && list_value.contains("annotation"))
+  {
+    assert(list_value["annotation"]["value"]["id"] == "list");
+    typet t =
+      get_typet(list_value["annotation"]["slice"]["id"].get<std::string>());
+    return build_array(t, 0);
+  }
+
   if (list_value["_type"] == "List") // Get list value type from elements
   {
     const nlohmann::json &elts = list_value["elts"];
@@ -1734,7 +1742,11 @@ void python_converter::get_function_definition(
       function_node["name"].get<std::string>(),
       json);
     assert(!return_var.empty());
-    type.return_type() = get_list_type(return_var["value"]);
+
+    if (return_var["_type"] == "arg")
+      type.return_type() = get_list_type(return_var);
+    else
+      type.return_type() = get_list_type(return_var["value"]);
   }
   else
   {
@@ -1775,7 +1787,12 @@ void python_converter::get_function_definition(
     else if (arg_name == "cls")
       arg_type = pointer_typet(empty_typet());
     else
-      arg_type = get_typet(element["annotation"]["id"].get<std::string>());
+    {
+      if (element["annotation"]["_type"] == "Subscript")
+        arg_type = get_list_type(element);
+      else
+        arg_type = get_typet(element["annotation"]["id"].get<std::string>());
+    }
 
     if (arg_type.is_array())
       arg_type = gen_pointer_type(arg_type.subtype());
