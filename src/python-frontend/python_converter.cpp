@@ -707,8 +707,8 @@ exprt python_converter::get_expr(const nlohmann::json &element)
     exprt &list_size = static_cast<array_typet &>(current_element_type).size();
     if (list_size == zero)
     {
-      current_element_type =
-        build_array(current_element_type.subtype(), element["elts"].size());
+      current_element_type = type_handler_.build_array(
+        current_element_type.subtype(), element["elts"].size());
     }
 
     expr = gen_zero(current_element_type);
