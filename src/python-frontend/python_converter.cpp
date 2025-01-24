@@ -305,7 +305,9 @@ exprt python_converter::get_binary_operator_expr(const nlohmann::json &element)
     if (op == "Eq")
     {
       if (rhs.type() != lhs.type())
-        return gen_boolean(false);
+      {
+        throw std::runtime_error("lhs and rhs types are different\n");
+      }
 
       array_typet &arr_type = static_cast<array_typet &>(lhs.type());
       BigInt str_size =
