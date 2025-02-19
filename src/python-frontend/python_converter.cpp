@@ -1345,6 +1345,13 @@ void python_converter::get_function_definition(
       arg_type = pointer_typet(empty_typet());
     else
     {
+      if (!element.contains("annotation") || element["annotation"].is_null())
+      {
+        throw std::runtime_error(
+          "All parameters in function \"" + current_func_name_ +
+          "\" must be type annotated");
+      }
+
       if (element["annotation"]["_type"] == "Subscript")
         arg_type = type_handler_.get_list_type(element);
       else
