@@ -31,8 +31,10 @@ class int:
   def bit_length(cls, n:int) -> int:
     length:int = 0
 
-    while n > 0:
-        n:int = n >> 1
+    x:uint64 = n
+
+    while x > 0:
+        x = x >> 1
         length:int = length + 1  # Count how many times the number is shifted
 
     return length

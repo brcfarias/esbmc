@@ -418,7 +418,8 @@ exprt python_converter::get_binary_operator_expr(const nlohmann::json &element)
       binary2integer(lhs.value().as_string(), lhs.type().is_signedbv()));
     BigInt exp(
       binary2integer(rhs.value().as_string(), rhs.type().is_signedbv()));
-    constant_exprt pow_expr(power(base, exp), lhs.type());
+    constant_exprt pow_expr(
+      power(base, exp), /*lhs.type()*/ long_long_uint_type());
     return pow_expr;
   }
 
@@ -1148,6 +1149,7 @@ void python_converter::get_var_assign(
 
     code_assignt code_assign(lhs, rhs);
     code_assign.location() = location_begin;
+    code_assign.dump();
     target_block.copy_to_operands(code_assign);
   }
   else
