@@ -119,7 +119,8 @@ typet type_handler::get_typet(const std::string &ast_type, size_t type_size)
       type.set("#cpp_type", "char");
       return type;
     }
-    return build_array(char_type(), type_size);
+    //return build_array(char_type(), type_size);
+    return pointer_typet(char_type());
   }
   if (json_utils::is_class(ast_type, converter_.ast()))
     return symbol_typet("tag-" + ast_type);

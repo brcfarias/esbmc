@@ -317,21 +317,29 @@ exprt python_converter::get_binary_operator_expr(const nlohmann::json &element)
       }
     };
 
-    ensure_array(rhs);
-    ensure_array(lhs);
+    if (!rhs.type().is_pointer())
+      ensure_array(rhs);
+    if (!lhs.type().is_pointer())
+      ensure_array(lhs);
 
-    assert(lhs.type().is_array());
-    assert(rhs.type().is_array());
+    assert(lhs.type().is_array() || lhs.type().is_pointer());
+    assert(rhs.type().is_array() || rhs.type().is_pointer());
 
     // Strings comparison
     if (op == "Eq")
     {
-      if (rhs.type() != lhs.type())
-        return gen_boolean(false);
+      BigInt str_size = 0;
 
-      array_typet &arr_type = static_cast<array_typet &>(lhs.type());
-      BigInt str_size =
-        binary2integer(arr_type.size().value().as_string(), false);
+      if (lhs.is_array())
+      {
+        array_typet &arr_type = static_cast<array_typet &>(lhs.type());
+        str_size = binary2integer(arr_type.size().value().as_string(), false);
+      }
+      else if (rhs.type().is_array())
+      {
+        array_typet &arr_type = static_cast<array_typet &>(rhs.type());
+        str_size = binary2integer(arr_type.size().value().as_string(), false);
+      }
 
       // call strncmp to compare strings
       symbolt *strncmp = symbol_table_.find_symbol("c:@F@strncmp");
@@ -704,7 +712,9 @@ exprt python_converter::get_literal(const nlohmann::json &element)
     }
     else // string literals
     {
-      t = type_handler_.get_typet("str", value.get<std::string>().size());
+      //t = type_handler_.get_typet("str", value.get<std::string>().size());
+      t =
+        type_handler_.build_array(char_type(), value.get<std::string>().size());
       const std::string &value = element["value"].get<std::string>();
       string_literal = std::vector<uint8_t>(std::begin(value), std::end(value));
     }
@@ -1106,7 +1116,7 @@ void python_converter::get_var_assign(
   {
     if (lhs_symbol)
     {
-      if (lhs_type == "str" || lhs_type == "list")
+      if (/*lhs_type == "str" ||*/ lhs_type == "list")
       {
         /* When a string is assigned the result of a concatenation, we initially
          * create the LHS type as a zero-size array: "current_element_type = get_typet(lhs_type, type_size);"
@@ -1301,8 +1311,16 @@ void python_converter::get_function_definition(
     }
     else
     {
-      type.return_type() =
-        type_handler_.get_typet(return_node["id"].get<std::string>());
+      /*if (return_node["id"].get<std::string>() == "str")
+      {
+        pointer_typet ptr(signed_char_type());
+        type.return_type() = ptr;
+      }
+      else*/
+      {
+        type.return_type() =
+          type_handler_.get_typet(return_node["id"].get<std::string>());
+      }
     }
   }
   else
