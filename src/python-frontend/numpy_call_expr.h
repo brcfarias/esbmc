@@ -20,6 +20,8 @@ public:
 private:
   bool is_math_function() const;
 
+  void broadcast_check(const nlohmann::json &operands) const;
+
   std::string get_dtype() const;
   typet get_typet_from_dtype() const;
   size_t get_dtype_size() const;
