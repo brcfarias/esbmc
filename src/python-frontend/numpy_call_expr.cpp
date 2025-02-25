@@ -113,6 +113,67 @@ typet numpy_call_expr::get_typet_from_dtype() const
   return {};
 }
 
+// Checks if two shapes are broadcast-compatible.
+// Two dimensions are compatible if they are equal or if one of them is 1.
+bool broadcastCompatible(
+  const std::vector<int> &shape1,
+  const std::vector<int> &shape2)
+{
+  int i1 = shape1.size() - 1;
+  int i2 = shape2.size() - 1;
+
+  // Compare dimensions from rightmost (inner) to leftmost (outer)
+  while (i1 >= 0 || i2 >= 0)
+  {
+    // If a shape lacks a dimension, assume its size is 1.
+    int d1 = (i1 >= 0) ? shape1[i1] : 1;
+    int d2 = (i2 >= 0) ? shape2[i2] : 1;
+
+    // Check if dimensions are compatible (either equal or one is 1)
+    if (d1 != d2 && d1 != 1 && d2 != 1)
+      return false;
+
+    --i1;
+    --i2;
+  }
+  return true;
+}
+
+void numpy_call_expr::broadcast_check(const nlohmann::json &operands) const
+{
+  std::vector<int> previous_shape;
+  bool is_first_operand = true;
+
+  for (const auto &op : operands)
+  {
+    if (op["_type"] == "Name")
+    {
+      symbol_id sid = converter_.create_symbol_id();
+      sid.set_object(op["id"].get<std::string>());
+      symbolt *s = converter_.find_symbol(sid.to_string());
+      assert(s);
+
+      // Retrieve the current operand's array shape.
+      std::vector<int> current_shape =
+        converter_.type_handler_.get_array_type_shape(s->type);
+
+      // For subsequent operands, compare shapes using broadcasting rules.
+      if (!is_first_operand)
+      {
+        if (!broadcastCompatible(previous_shape, current_shape))
+          throw std::runtime_error("Array shapes are not compatible!\n");
+      }
+      else
+      {
+        is_first_operand = false;
+      }
+
+      // Update previous_shape for the next iteration.
+      previous_shape = current_shape;
+    }
+  }
+}
+
 exprt numpy_call_expr::get() const
 {
   static const std::unordered_map<std::string, float> numpy_functions = {
@@ -137,6 +198,8 @@ exprt numpy_call_expr::get() const
   // Handle math function calls
   if (is_math_function())
   {
+    broadcast_check(call_["args"]);
+
     auto bin_op = create_binary_op(
       function, call_["args"][0]["value"], call_["args"][1]["value"]);
 
