@@ -26,7 +26,19 @@ static auto create_list(int size, T default_value)
 }
 
 template <typename T>
-static auto create_binary_op(const std::string &op, T lhs, T rhs)
+static auto create_list(const std::vector<T> &vector)
+{
+  nlohmann::json list;
+  list["_type"] = "List";
+  for (const auto &v : vector)
+  {
+    list["elts"].push_back({{"_type", "Constant"}, {"value", v}});
+  }
+  return list;
+}
+
+template <typename T>
+static auto create_binary_op(const std::string &op, const T &lhs, const T &rhs)
 {
   nlohmann::json bin_op = {
     {"_type", "BinOp"},
@@ -174,6 +186,35 @@ void numpy_call_expr::broadcast_check(const nlohmann::json &operands) const
   }
 }
 
+exprt numpy_call_expr::create_expr_from_call() const
+{
+  nlohmann::json expr;
+  if (
+    call_["args"][0]["_type"] == "Constant" &&
+    call_["args"][1]["_type"] == "Constant")
+  {
+    expr = create_binary_op(
+      function_id_.get_function(),
+      call_["args"][0]["value"],
+      call_["args"][1]["value"]);
+  }
+
+  if (
+    call_["args"][0]["_type"] == "List" && call_["args"][1]["_type"] == "List")
+  {
+    std::vector<int> res;
+    for (size_t i = 0; i < call_["args"][0]["elts"].size(); ++i)
+    {
+      res.push_back(
+        call_["args"][0]["elts"][i]["value"].get<int>() +
+        call_["args"][1]["elts"][i]["value"].get<int>());
+    }
+    expr = create_list(res);
+  }
+
+  return converter_.get_expr(expr);
+}
+
 exprt numpy_call_expr::get() const
 {
   static const std::unordered_map<std::string, float> numpy_functions = {
@@ -184,7 +225,8 @@ exprt numpy_call_expr::get() const
   // Create array from numpy.array()
   if (function == "array")
   {
-    return converter_.get_expr(call_["args"][0]);
+    auto expr = converter_.get_expr(call_["args"][0]);
+    return expr;
   }
 
   // Create array from numpy.zeros() or numpy.ones()
@@ -200,10 +242,7 @@ exprt numpy_call_expr::get() const
   {
     broadcast_check(call_["args"]);
 
-    auto bin_op = create_binary_op(
-      function, call_["args"][0]["value"], call_["args"][1]["value"]);
-
-    exprt e = converter_.get_expr(bin_op);
+    exprt expr = create_expr_from_call();
 
     auto dtype_size(get_dtype_size());
     if (dtype_size)
@@ -216,14 +255,14 @@ exprt numpy_call_expr::get() const
         converter_.update_symbol(*converter_.current_lhs);
 
         // Update rhs expression
-        e.type() = converter_.current_lhs->type();
-        if (!e.operands().empty())
+        expr.type() = converter_.current_lhs->type();
+        if (!expr.operands().empty())
         {
-          e.operands().at(0).type() = e.type();
-          e.operands().at(1).type() = e.type();
+          expr.operands().at(0).type() = expr.type();
+          expr.operands().at(1).type() = expr.type();
         }
 
-        std::string value_str = e.value().as_string();
+        std::string value_str = expr.value().as_string();
         size_t value_size = count_effective_bits(value_str);
 
         if (value_size > dtype_size)
@@ -236,17 +275,18 @@ exprt numpy_call_expr::get() const
             function_id_.get_function());
         }
 
-        if (!e.value().empty())
+        if (!expr.value().empty())
         {
           auto length = value_str.length();
-          e.value(value_str.substr(length - dtype_size));
-          value_str = e.value().as_string();
-          e.set("#cformat", std::to_string(std::stoll(value_str, nullptr, 2)));
+          expr.value(value_str.substr(length - dtype_size));
+          value_str = expr.value().as_string();
+          expr.set(
+            "#cformat", std::to_string(std::stoll(value_str, nullptr, 2)));
         }
       }
     }
 
-    return e;
+    return expr;
   }
 
   throw std::runtime_error("Unsupported NumPy function call: " + function);

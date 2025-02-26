@@ -1176,7 +1176,7 @@ void python_converter::get_var_assign(
   {
     if (lhs_symbol)
     {
-      if (lhs_type == "str" || lhs_type == "list")
+      if (lhs_type == "str" || lhs_type == "list" || rhs.type().is_array())
       {
         /* When a string is assigned the result of a concatenation, we initially
          * create the LHS type as a zero-size array: "current_element_type = get_typet(lhs_type, type_size);"

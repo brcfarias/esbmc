@@ -18,6 +18,8 @@ public:
   exprt get() const;
 
 private:
+  exprt create_expr_from_call() const;
+
   bool is_math_function() const;
 
   void broadcast_check(const nlohmann::json &operands) const;
