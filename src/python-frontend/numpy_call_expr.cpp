@@ -1,6 +1,7 @@
 #include <python-frontend/numpy_call_expr.h>
 #include <python-frontend/symbol_id.h>
 #include <python-frontend/python_converter.h>
+#include <python-frontend/json_utils.h>
 #include <util/expr.h>
 #include <util/c_types.h>
 #include <util/message.h>
@@ -127,7 +128,7 @@ typet numpy_call_expr::get_typet_from_dtype() const
 
 // Checks if two shapes are broadcast-compatible.
 // Two dimensions are compatible if they are equal or if one of them is 1.
-bool broadcastCompatible(
+bool is_broadcastable(
   const std::vector<int> &shape1,
   const std::vector<int> &shape2)
 {
@@ -172,7 +173,7 @@ void numpy_call_expr::broadcast_check(const nlohmann::json &operands) const
       // For subsequent operands, compare shapes using broadcasting rules.
       if (!is_first_operand)
       {
-        if (!broadcastCompatible(previous_shape, current_shape))
+        if (!is_broadcastable(previous_shape, current_shape))
           throw std::runtime_error("Array shapes are not compatible!\n");
       }
       else
@@ -189,25 +190,40 @@ void numpy_call_expr::broadcast_check(const nlohmann::json &operands) const
 exprt numpy_call_expr::create_expr_from_call() const
 {
   nlohmann::json expr;
-  if (
-    call_["args"][0]["_type"] == "Constant" &&
-    call_["args"][1]["_type"] == "Constant")
+
+  auto lhs = call_["args"][0];
+  auto rhs = call_["args"][1];
+
+  if (lhs["_type"] == "Name")
   {
-    expr = create_binary_op(
-      function_id_.get_function(),
-      call_["args"][0]["value"],
-      call_["args"][1]["value"]);
+    lhs = json_utils::find_var_decl(
+      lhs["id"], function_id_.get_function(), converter_.ast());
+    if (lhs["value"]["_type"] == "Call")
+      lhs = lhs["value"]["args"][0];
   }
 
-  if (
-    call_["args"][0]["_type"] == "List" && call_["args"][1]["_type"] == "List")
+  if (rhs["_type"] == "Name")
+  {
+    rhs = json_utils::find_var_decl(
+      rhs["id"], function_id_.get_function(), converter_.ast());
+    if (rhs["value"]["_type"] == "Call")
+      rhs = rhs["value"]["args"][0];
+  }
+
+  if (lhs["_type"] == "Constant" && rhs["_type"] == "Constant")
+  {
+    expr =
+      create_binary_op(function_id_.get_function(), lhs["value"], rhs["value"]);
+  }
+
+  if (lhs["_type"] == "List" && rhs["_type"] == "List")
   {
     std::vector<int> res;
-    for (size_t i = 0; i < call_["args"][0]["elts"].size(); ++i)
+    for (size_t i = 0; i < lhs["elts"].size(); ++i)
     {
       res.push_back(
-        call_["args"][0]["elts"][i]["value"].get<int>() +
-        call_["args"][1]["elts"][i]["value"].get<int>());
+        lhs["elts"][i]["value"].get<int>() +
+        rhs["elts"][i]["value"].get<int>());
     }
     expr = create_list(res);
   }
