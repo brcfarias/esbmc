@@ -1,4 +1,4 @@
 CORE
 main.py
 
-ERROR: Array shapes are not compatible!
+ERROR: operands could not be broadcast together with shapes.*
