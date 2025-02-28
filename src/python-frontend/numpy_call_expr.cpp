@@ -6,6 +6,8 @@
 #include <util/c_types.h>
 #include <util/message.h>
 
+#include <ostream>
+
 numpy_call_expr::numpy_call_expr(
   const symbol_id &function_id,
   const nlohmann::json &call,
@@ -132,22 +134,22 @@ bool is_broadcastable(
   const std::vector<int> &shape1,
   const std::vector<int> &shape2)
 {
-  int i1 = shape1.size() - 1;
-  int i2 = shape2.size() - 1;
+  int s1 = shape1.size() - 1;
+  int s2 = shape2.size() - 1;
 
   // Compare dimensions from rightmost (inner) to leftmost (outer)
-  while (i1 >= 0 || i2 >= 0)
+  while (s1 >= 0 || s2 >= 0)
   {
     // If a shape lacks a dimension, assume its size is 1.
-    int d1 = (i1 >= 0) ? shape1[i1] : 1;
-    int d2 = (i2 >= 0) ? shape2[i2] : 1;
+    int d1 = (s1 >= 0) ? shape1[s1] : 1;
+    int d2 = (s2 >= 0) ? shape2[s2] : 1;
 
     // Check if dimensions are compatible (either equal or one is 1)
     if (d1 != d2 && d1 != 1 && d2 != 1)
       return false;
 
-    --i1;
-    --i2;
+    --s1;
+    --s2;
   }
   return true;
 }
@@ -174,7 +176,13 @@ void numpy_call_expr::broadcast_check(const nlohmann::json &operands) const
       if (!is_first_operand)
       {
         if (!is_broadcastable(previous_shape, current_shape))
-          throw std::runtime_error("Array shapes are not compatible!\n");
+        {
+          std::ostringstream oss;
+          oss << "operands could not be broadcast together with shapes (";
+          oss << previous_shape[0] << ",) (";
+          oss << current_shape[0] << ",)";
+          throw std::runtime_error(oss.str());
+        }
       }
       else
       {
