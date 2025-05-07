@@ -140,6 +140,9 @@ std::vector<int> type_handler::get_array_type_shape(const typet &type) const
 typet type_handler::get_typet(const std::string &ast_type, size_t type_size)
   const
 {
+  if (ast_type == "Any")
+    return empty_typet();
+
   // float — represents IEEE 754 double-precision
   if (ast_type == "float")
     return double_type();
@@ -194,7 +197,9 @@ typet type_handler::get_typet(const std::string &ast_type, size_t type_size)
     return symbol_typet("tag-" + ast_type);
 
   // Unknown / unsupported type
-  log_warning("python", "Unknown or unsupported AST type: {}", ast_type);
+  if (!ast_type.empty())
+    log_warning("Unknown or unsupported AST type: {}", ast_type.c_str());
+
   return empty_typet();
 }
 
