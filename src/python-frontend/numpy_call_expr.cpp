@@ -64,7 +64,7 @@ bool numpy_call_expr::is_math_function() const
          (function == "sqrt") || (function == "fmin") || (function == "fmax") ||
          (function == "trunc") || (function == "round") ||
          (function == "arccos") || (function == "copysign") ||
-         (function == "arctan");
+         (function == "arctan") || (function == "dot");
 }
 
 std::string numpy_call_expr::get_dtype() const
