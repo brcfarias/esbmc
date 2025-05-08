@@ -50,3 +50,6 @@ def exp(x:float) -> float:
 
 def fmod(x:float) -> float:
     return 0.2
+
+def dot(a:float, b:float) -> float:
+    return 0.0
