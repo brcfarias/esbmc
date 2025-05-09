@@ -1,6 +1,6 @@
 // NumPy documentation: https://numpy.org/doc/stable/reference/routines.linalg.html
 
-void dot(const int *A, int m, int n, const int *B, int n2, int p, int *C)
+void dot(const int *A, const int *B, int *C, int m, int n, int n2, int p)
 {
   int i = 0;
   int j = 0;
