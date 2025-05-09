@@ -307,7 +307,6 @@ exprt numpy_call_expr::create_expr_from_call()
         call.arguments().push_back(address_of_exprt(*converter_.current_lhs));
         call.arguments().push_back(from_integer(m, int_type()));
         call.arguments().push_back(from_integer(n, int_type()));
-        call.arguments().push_back(from_integer(n2, int_type()));
         call.arguments().push_back(from_integer(p, int_type()));
 
         return call;
