@@ -278,6 +278,42 @@ exprt numpy_call_expr::create_expr_from_call()
     {
       std::vector<int> res;
       const std::string &operation = function_id_.get_function();
+
+      if (operation == "dot")
+      {
+        size_t m = lhs["elts"].size();
+        size_t n = lhs["elts"][0]["elts"].size();
+        size_t n2 = rhs["elts"].size();
+        size_t p = rhs["elts"][0]["elts"].size();
+
+        if (n != n2)
+          throw std::runtime_error("Incompatible shapes for dot product");
+
+        const auto &elem = lhs["elts"][0]["elts"][0]["value"];
+        typet base_type = type_handler_.get_typet(elem);
+
+        typet row_type =
+          type_handler_.build_array(base_type, p);
+        typet matrix_type = type_handler_.build_array(row_type, m);
+
+        function_id_.set_function("dot");
+
+        code_function_callt call =
+          to_code_function_call(to_code(function_call_expr::get()));
+
+        converter_.current_lhs->type() = matrix_type;
+        converter_.update_symbol(*converter_.current_lhs);
+
+        call.arguments().push_back(address_of_exprt(*converter_.current_lhs));
+        call.arguments().push_back(from_integer(m, int_type()));
+        call.arguments().push_back(from_integer(n, int_type()));
+        call.arguments().push_back(from_integer(n2, int_type()));
+        call.arguments().push_back(from_integer(p, int_type()));
+
+        return call;
+      }
+
+      // FIXME: Replace this by C models function calls
       for (size_t i = 0; i < lhs["elts"].size(); ++i)
       {
         int left_val = lhs["elts"][i]["value"].get<int>();
