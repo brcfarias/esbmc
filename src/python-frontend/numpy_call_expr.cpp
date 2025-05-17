@@ -3,6 +3,7 @@
 #include <python-frontend/python_converter.h>
 #include <python-frontend/json_utils.h>
 #include <util/expr.h>
+#include <util/expr_util.h>
 #include <util/c_types.h>
 #include <util/message.h>
 #include <util/arith_tools.h>
@@ -358,10 +359,27 @@ exprt numpy_call_expr::create_expr_from_call()
         converter_.current_lhs->type() = matrix_type;
         converter_.update_symbol(*converter_.current_lhs);
 
-        call.arguments().push_back(address_of_exprt(*converter_.current_lhs));
-        call.arguments().push_back(from_integer(m, int_type()));
-        call.arguments().push_back(from_integer(n, int_type()));
-        call.arguments().push_back(from_integer(p, int_type()));
+        auto& args = call.arguments();
+
+        //args.push_back(address_of_exprt(*converter_.current_lhs));
+        index_exprt index(*converter_.current_lhs, gen_zero(size_type()), matrix_type.subtype());
+        address_of_exprt addr;
+        addr.type().subtype() = matrix_type.subtype();
+        addr.object() = index;
+        typet ptr("pointer");
+        ptr.subtype() = empty_typet();
+        typecast_exprt tc(addr, ptr);
+
+        args.push_back(tc);
+#if 1
+        args.insert(args.begin(), from_integer(m, int_type()));
+        args.insert(args.begin(), from_integer(n, int_type()));
+        args.insert(args.begin(), from_integer(p, int_type()));
+#else
+        args.push_back(from_integer(m, int_type()));
+        args.push_back(from_integer(n, int_type()));
+        args.push_back(from_integer(p, int_type()));
+#endif
 
         return call;
       }
