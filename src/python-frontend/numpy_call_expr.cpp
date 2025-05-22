@@ -10,6 +10,9 @@
 
 #include <ostream>
 
+const char *kConstant = "Constant";
+const char *kName = "Name";
+
 numpy_call_expr::numpy_call_expr(
   const symbol_id &function_id,
   const nlohmann::json &call,
@@ -43,13 +46,30 @@ static auto create_list(const std::vector<T> &vector)
 }
 
 template <typename T>
-static auto create_binary_op(const std::string &op, const T &lhs, const T &rhs)
+static auto create_binary_op(
+  const std::string &op,
+  const std::string type,
+  const T &lhs,
+  const T &rhs)
 {
+  nlohmann::json left, right;
+
+  if (type == kName)
+  {
+    left = {{"_type", type}, {"id", lhs}};
+    right = {{"_type", type}, {"id", rhs}};
+  }
+  else
+  {
+    left = {{"_type", type}, {"value", lhs}};
+    right = {{"_type", type}, {"value", rhs}};
+  }
+
   nlohmann::json bin_op = {
     {"_type", "BinOp"},
-    {"left", {{"_type", "Constant"}, {"value", lhs}}},
+    {"left", left},
     {"op", {{"_type", op}}},
-    {"right", {{"_type", "Constant"}, {"value", rhs}}}};
+    {"right", right}};
 
   return bin_op;
 }
@@ -320,14 +340,24 @@ exprt numpy_call_expr::create_expr_from_call()
       {
         double lhs_val = get_constant_value<double>(lhs);
         double rhs_val = get_constant_value<double>(rhs);
-        expr = create_binary_op(function_id_.get_function(), lhs_val, rhs_val);
+        expr = create_binary_op(
+          function_id_.get_function(), kConstant, lhs_val, rhs_val);
       }
       else
       {
         int lhs_val = get_constant_value<int>(lhs);
         int rhs_val = get_constant_value<int>(rhs);
-        expr = create_binary_op(function_id_.get_function(), lhs_val, rhs_val);
+        expr = create_binary_op(
+          function_id_.get_function(), kConstant, lhs_val, rhs_val);
       }
+    }
+    else if (lhs["_type"] == "AnnAssign" && rhs["_type"] == "AnnAssign")
+    {
+      expr = create_binary_op(
+        function_id_.get_function(),
+        kName,
+        lhs["target"]["id"],
+        rhs["target"]["id"]);
     }
     else if (lhs["_type"] == "List" && rhs["_type"] == "List")
     {
