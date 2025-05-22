@@ -367,7 +367,7 @@ exprt numpy_call_expr::create_expr_from_call()
         return call;
       }
 
-      if (operation == "add" || operation == "subtract")
+      if (operation == "add" || operation == "subtract"  || operation == "multiply")
       {
         code_function_callt call =
           to_code_function_call(to_code(function_call_expr::get()));

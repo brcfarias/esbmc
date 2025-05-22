@@ -84,7 +84,8 @@ public:
            func_name == "fmax" || func_name == "trunc" ||
            func_name == "round" || func_name == "copysign" ||
            func_name == "arctan" || func_name == "arccos" ||
-           func_name == "dot" || func_name == "add" || func_name == "subtract";
+           func_name == "dot" || func_name == "add" ||
+           func_name == "subtract" || func_name == "multiply";
   }
 
 private:
