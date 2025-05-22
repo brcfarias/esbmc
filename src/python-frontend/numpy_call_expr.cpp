@@ -367,7 +367,9 @@ exprt numpy_call_expr::create_expr_from_call()
         return call;
       }
 
-      if (operation == "add" || operation == "subtract"  || operation == "multiply")
+      if (
+        operation == "add" || operation == "subtract" ||
+        operation == "multiply" || operation == "divide")
       {
         code_function_callt call =
           to_code_function_call(to_code(function_call_expr::get()));
@@ -387,30 +389,7 @@ exprt numpy_call_expr::create_expr_from_call()
         return call;
       }
 
-      // FIXME: Replace this by C models function calls
-      for (size_t i = 0; i < lhs["elts"].size(); ++i)
-      {
-        int left_val = lhs["elts"][i]["value"].get<int>();
-        int right_val = rhs["elts"][i]["value"].get<int>();
-
-        /*if (operation == "add")
-          res.push_back(left_val + right_val);
-        else if (operation == "subtract")
-          res.push_back(left_val - right_val);
-        else*/ if (operation == "multiply")
-          res.push_back(left_val * right_val);
-        else if (operation == "divide")
-        {
-          if (right_val == 0)
-            throw std::runtime_error("Division by zero in list operation");
-          res.push_back(left_val / right_val);
-        }
-        else
-        {
-          throw std::runtime_error("Unsupported operation: " + operation);
-        }
-      }
-      expr = create_list(res);
+      throw std::runtime_error("Unsupported operation: " + operation);
     }
   }
 
