@@ -94,7 +94,8 @@ const static std::vector<std::string> python_c_models = {
   "cos",     "exp",        "expm1",        "expm1_taylor", "fmod",
   "sqrt",    "fmin",       "fmax",         "trunc",        "frexp",
   "round",   "copysign",   "arctan",       "atan",         "_atan",
-  "atan2",   "acos",       "arccos",       "dot",       "add"};
+  "atan2",   "acos",       "arccos",       "dot",          "add",
+  "subtract"};
 
 } // namespace
 

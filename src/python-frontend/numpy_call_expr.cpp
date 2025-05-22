@@ -367,7 +367,7 @@ exprt numpy_call_expr::create_expr_from_call()
         return call;
       }
 
-      if (operation == "add")
+      if (operation == "add" || operation == "subtract")
       {
         code_function_callt call =
           to_code_function_call(to_code(function_call_expr::get()));
@@ -393,11 +393,11 @@ exprt numpy_call_expr::create_expr_from_call()
         int left_val = lhs["elts"][i]["value"].get<int>();
         int right_val = rhs["elts"][i]["value"].get<int>();
 
-        if (operation == "add")
+        /*if (operation == "add")
           res.push_back(left_val + right_val);
         else if (operation == "subtract")
           res.push_back(left_val - right_val);
-        else if (operation == "multiply")
+        else*/ if (operation == "multiply")
           res.push_back(left_val * right_val);
         else if (operation == "divide")
         {
