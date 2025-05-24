@@ -26,8 +26,10 @@ bool function_call_builder::is_numpy_call(const symbol_id &function_id) const
 
   const std::string &filename = function_id.get_filename();
 
+  //TODO: Check a better way to detect numpy calls
+
   return boost::algorithm::ends_with(filename, "/models/numpy.py") ||
-         filename.find("/numpy/") != std::string::npos;
+         filename.find("/numpy/linalg") != std::string::npos;
 }
 
 bool function_call_builder::is_assume_call(const symbol_id &function_id) const
