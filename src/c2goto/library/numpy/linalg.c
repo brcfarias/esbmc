@@ -39,3 +39,48 @@ void transpose(int64_t *src, int64_t *dst, int64_t rows, int64_t cols)
     ++i;
   }
 }
+
+#define IDX(i, j, n) ((i) * (n) + (j))
+
+void determinant(const double *src, double *dst, int n)
+{
+  double *mat = __ESBMC_alloca(n * n * sizeof(double));
+  int i = 0;
+  while (i < n * n)
+  {
+    mat[i] = src[i];
+    i++;
+  }
+
+  double det = 1.0;
+  int k = 0;
+
+  while (k < n)
+  {
+    double pivot = mat[IDX(k, k, n)];
+
+    if (fabs(pivot) < 1e-12)
+    {
+      det = 0.0;
+      break;
+    }
+
+    int i2 = k + 1;
+    while (i2 < n)
+    {
+      double factor = mat[IDX(i2, k, n)] / pivot;
+      int j = k;
+      while (j < n)
+      {
+        mat[IDX(i2, j, n)] -= factor * mat[IDX(k, j, n)];
+        j++;
+      }
+      i2++;
+    }
+
+    det *= pivot;
+    k++;
+  }
+
+  *dst = det;
+}

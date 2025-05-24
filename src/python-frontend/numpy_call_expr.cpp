@@ -77,16 +77,16 @@ static auto create_binary_op(
 bool numpy_call_expr::is_math_function() const
 {
   const std::string &function = function_id_.get_function();
-  return (function == "add") || (function == "subtract") ||
-         (function == "multiply") || (function == "divide") ||
-         (function == "power") || (function == "ceil") ||
-         (function == "floor") || (function == "fabs") || (function == "sin") ||
-         (function == "cos") || (function == "exp") || (function == "fmod") ||
-         (function == "sqrt") || (function == "fmin") || (function == "fmax") ||
-         (function == "trunc") || (function == "round") ||
-         (function == "arccos") || (function == "copysign") ||
-         (function == "arctan") || (function == "dot") ||
-         (function == "transpose");
+  return function == "add" || function == "subtract" ||
+         function == "multiply" || (function == "divide" ||
+         function == "power" || function == "ceil" ||
+         function == "floor" || function == "fabs" || function == "sin" ||
+         function == "cos" || function == "exp" || function == "fmod" ||
+         function == "sqrt" || function == "fmin") || function == "fmax" ||
+         function == "trunc" || function == "round" ||
+         function == "arccos" || function == "copysign" ||
+         function == "arctan" || function == "dot" ||
+         function == "transpose" || function == "det";
 }
 
 std::string numpy_call_expr::get_dtype() const
