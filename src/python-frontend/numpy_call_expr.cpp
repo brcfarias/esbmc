@@ -85,7 +85,8 @@ bool numpy_call_expr::is_math_function() const
          (function == "sqrt") || (function == "fmin") || (function == "fmax") ||
          (function == "trunc") || (function == "round") ||
          (function == "arccos") || (function == "copysign") ||
-         (function == "arctan") || (function == "dot");
+         (function == "arctan") || (function == "dot") ||
+         (function == "transpose");
 }
 
 std::string numpy_call_expr::get_dtype() const
@@ -280,6 +281,23 @@ exprt numpy_call_expr::create_expr_from_call()
     {
       return function_call_expr::get();
     }
+    else if (arg_type == "List")
+    {
+      const std::string &operation = function_id_.get_function();
+      if (operation == "transpose")
+      {
+        code_function_callt call =
+          to_code_function_call(to_code(function_call_expr::get()));
+        typet t = call.arguments().at(0).type().subtype();
+        converter_.current_lhs->type() = t;
+        converter_.update_symbol(*converter_.current_lhs);
+        call.arguments().push_back(address_of_exprt(*converter_.current_lhs));
+        std::vector<int> shape = type_handler_.get_array_type_shape(t);
+        call.arguments().push_back(from_integer(shape[0], int_type()));
+        call.arguments().push_back(from_integer(shape[1], int_type()));
+        return call;
+      }
+    }
     else if (arg_type == "Name")
     {
       auto arg = call_["args"][0];
@@ -361,7 +379,6 @@ exprt numpy_call_expr::create_expr_from_call()
     }
     else if (lhs["_type"] == "List" && rhs["_type"] == "List")
     {
-      std::vector<int> res;
       const std::string &operation = function_id_.get_function();
 
       if (operation == "dot")

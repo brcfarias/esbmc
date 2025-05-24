@@ -24,3 +24,18 @@ void dot(int64_t *A, int64_t *B, int64_t *C, int64_t m, int64_t n, int64_t p)
     i++;
   }
 }
+
+void transpose(int64_t *src, int64_t *dst, int64_t rows, int64_t cols)
+{
+  int i = 0;
+  while (i < rows)
+  {
+    int j = 0;
+    while (j < cols)
+    {
+      dst[j * rows + i] = src[i * cols + j];
+      ++j;
+    }
+    ++i;
+  }
+}
