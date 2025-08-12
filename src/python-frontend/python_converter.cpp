@@ -2107,7 +2107,10 @@ exprt python_converter::get_expr(const nlohmann::json &element)
     sid.set_object(var_name);
 
     if (element.contains("attr") && is_class_attr)
+    {
       sid.set_attribute(element["attr"].get<std::string>());
+      sid.set_function("");
+    }
 
     std::string sid_str = sid.to_string();
 
