@@ -1103,6 +1103,19 @@ exprt function_call_expr::get()
     // Self is the LHS
     if (converter_.current_lhs)
       call.arguments().push_back(gen_address_of(*converter_.current_lhs));
+    else if (function_id_.get_function() == "__init__") {
+#if 0
+      const auto& current_class = json_utils::find_class(converter_.ast()["body"], converter_.current_classname());
+      DUMP_OBJECT(current_class);
+      const auto& current_init = json_utils::find_function(current_class["body"], "__init__");
+      printf("current init\n");
+      DUMP_OBJECT(current_init);
+//      exprt self = converter_.get_expr()
+#endif
+      // TODO: Need to propagate/update self during object construction
+      typet t = pointer_typet(empty_typet());
+      call.arguments().push_back(gen_zero(t));
+    }
   }
   else if (function_type_ == FunctionType::InstanceMethod)
   {
