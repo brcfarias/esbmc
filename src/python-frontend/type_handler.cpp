@@ -286,6 +286,13 @@ typet type_handler::get_typet(const nlohmann::json &elem) const
   {
     const nlohmann::json &var = json_utils::find_var_decl(
       elem["id"], converter_.current_function_name(), converter_.ast());
+
+    if (var["value"]["_type"] == "Call")
+    {
+      throw std::runtime_error(
+        "Can't determine the type from function " +
+        var["value"]["func"]["id"].get<std::string>());
+    }
     return get_typet(var["value"]["value"]);
   }
 
