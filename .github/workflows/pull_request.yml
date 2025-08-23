@@ -97,6 +97,42 @@ jobs:
       run: git diff --exit-code --ignore-cr-at-eol
       if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
 
+
+    # Check project with YAPF
+  python-style:
+      name: Check and fix Python code style (YAPF)
+      runs-on: ubuntu-22.04
+      permissions:
+        contents: write
+      steps:
+        - uses: actions/checkout@v4
+
+        - name: Set up Python
+          uses: actions/setup-python@v5
+          with:
+            python-version: '3.10'
+
+        - name: Install YAPF
+          run: pip install yapf
+
+        - name: Apply YAPF formatting (src and regression)
+          run: |
+            yapf --recursive --in-place src/python-frontend
+            yapf --recursive --in-place regression
+
+        - name: Auto-commit formatting changes
+          uses: stefanzweifel/git-auto-commit-action@v5
+          if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+          with:
+            commit_message: 'style(python): apply YAPF auto-formatting'
+            file_pattern: 'src/python-frontend/**/*.py regression/**/*.py'
+
+        - name: Throw error if changes were made (for forks)
+          run: git diff --exit-code --ignore-cr-at-eol
+          if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+
+
+
   cmake-lint:
     name: Check CMake modules
     runs-on: ubuntu-22.04
