@@ -15,7 +15,7 @@ static inline size_t va_hash_string(const char *str) {
     size_t hash = 5381;
     int c;
     while ((c = *str++)) {
-        hash = ((hash << 5) + hash) + c; // hash * 33 + c
+        hash = ((hash << 5) + hash) + c;
     }
     return hash;
 }
@@ -57,18 +57,15 @@ static inline void va_free(VarArray *a) {
 }
 
 static inline bool va_push_copy(VarArray *a, const void *data, size_t len, size_t type_hash) {
-    // Usa a->size diretamente como índice
     __ESBMC_objects[a->size].value = data;
     __ESBMC_objects[a->size].size = len;
     __ESBMC_objects[a->size].type_hash = type_hash;
-    
     a->size++;
     return true;
 }
 
 static inline bool va_replace_copy(VarArray *a, size_t index, const void *data, size_t len, size_t type_hash) {
     if (index >= a->size) return false;
-
     __ESBMC_objects[index].value = data;
     __ESBMC_objects[index].size = len;
     __ESBMC_objects[index].type_hash = type_hash;
@@ -91,6 +88,19 @@ static inline bool va_pop(VarArray *a) {
     a->size--;
     return true;
 }
+
+#define va_get_as(array, index, T) \
+    ({ \
+        const Object *obj = va_get_cptr((array), (index)); \
+        (obj && obj->type_hash == VA_TYPE_HASH(T)) ? (T*)obj->value : NULL; \
+    })
+
+/* ---------- helper para verificar tipo ---------- */
+#define va_is_type(array, index, T) \
+    ({ \
+        const Object *obj = va_get_cptr((array), (index)); \
+        obj && obj->type_hash == VA_TYPE_HASH(T); \
+    })
 
 typedef struct { int x, y; } Point;
 
@@ -116,6 +126,12 @@ int main(void) {
     }
     assert(*(int*)o0->value == 42);
 
+    // int *int_ptr = va_get_as(&a, 0, int);
+    // if (int_ptr) {
+    //     printf("int: %d\n", *int_ptr);
+    //     assert(*int_ptr == 42);
+    // }
+
     const Object *o1 = va_get_cptr(&a, 1);
     if (o1 && o1->type_hash == VA_TYPE_HASH(char_ptr)) {
         printf("str: %s\n", (char*)o1->value);
@@ -127,16 +143,21 @@ int main(void) {
         printf("Point{%d,%d}\n", pp->x, pp->y);
     }
 
+    if (va_is_type(&a, 0, int)) {
+        printf("Index 0 é um int\n");
+    }
+
     // replace
     int nx = 777;
     va_replace_copy(&a, 0, &nx, sizeof nx, VA_TYPE_HASH(int));
-    printf("int: %d\n", *(int*)o0->value);
+    // printf("int: %d\n", *int_ptr);
 
     o0 = va_get_cptr(&a, 0);
+    // int_ptr = va_get_as(&a, 0, int);
     assert(*(int*)o0->value == 777);
 
-    //erase index 1 (string)
-    va_erase(&a, 1);
+    //erase index 1 (string) TODO: Mark element as invalid
+    // va_erase(&a, 1);
 
     // pop último (Point)
     va_pop(&a);
