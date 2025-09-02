@@ -5,47 +5,32 @@
 #include <assert.h>
 #include <stdio.h>
 
+// #define TYPE_TAG(T)      ((size_t)&TAG_##T)
+// #define DEF_TYPE_TAG(T)  static const char TAG_##T = 0
 
-#define TYPE_TAG(T)      ((size_t)&TAG_##T)
-#define DEF_TYPE_TAG(T)  static const char TAG_##T = 0
+// #define TYPE_EQ(tag, T)         ((tag) == TYPE_TAG(T))
+// #define OBJ_IS(obj_ptr, T)      ((obj_ptr)->type_tag == TYPE_TAG(T))
 
-#define TYPE_EQ(tag, T)         ((tag) == TYPE_TAG(T))
-#define OBJ_IS(obj_ptr, T)      ((obj_ptr)->type_tag == TYPE_TAG(T))
-
-DEF_TYPE_TAG(int);
-DEF_TYPE_TAG(char_ptr);
-DEF_TYPE_TAG(Point);
-
-
-#if 0
-typedef struct {
-    void   *value;     // payload alocado individualmente (dono: VarArray)
-    size_t  size;      // tamanho em bytes do payload
-    size_t  type_hash; // hash do "tipo" (ex.: TYPE_HASH(int), TYPE_HASH("MyType"))
-} Object;
-
-typedef struct {
-    Object *objs;      // vetor de Objects
-    size_t  size;      // quantidade em uso
-    size_t  capacity;  // slots alocados
-} VarArray;
-
-static inline size_t va_hash_bytes(const void *data, size_t len) {
-    const uint8_t *p = (const uint8_t *)data;
-    uint64_t h = 1469598103934665603ULL;   // offset basis
-    for (size_t i = 0; i < len; ++i) {
-        h ^= p[i];
-        h *= 1099511628211ULL;            // prime
+static inline size_t va_hash_string(const char *str) {
+    size_t hash = 5381;
+    int c;
+    while ((c = *str++)) {
+        hash = ((hash << 5) + hash) + c; // hash * 33 + c
     }
-    return (size_t)h;
+    return hash;
 }
 
-static inline size_t va_hash_cstr(const char *s) {
-    return va_hash_bytes(s, s ? strlen(s) : 0);
-}
+// Macro para obter hash de tipo dinamicamente
+#define VA_TYPE_HASH(T) va_hash_string(#T)
 
-#define TYPE_HASH(T) va_hash_cstr(#T)
-#endif
+// Macro para push com tipo automático
+#define va_push(array, var) \
+    va_push_copy((array), &(var), sizeof(var), VA_TYPE_HASH(__typeof__(var)))
+
+// Macro para push de string
+#define va_push_str(array, str) \
+    va_push_copy((array), (str), strlen(str) + 1, VA_TYPE_HASH(char*))
+
 
 typedef struct {
     const void *value;     // ponteiro para dados
@@ -107,54 +92,44 @@ static inline bool va_pop(VarArray *a) {
     return true;
 }
 
-// /* ---------- helpers de conveniência ---------- */
-static inline bool va_push_cstr(VarArray *a, const char *cstr) {
-    size_t n = cstr ? (strlen(cstr) + 1) : 1;
-    const char empty = '\0';
-    const void *src = cstr ? (const void*)cstr : (const void*)&empty;
-    return va_push_copy(a, src, n, TYPE_TAG(char_ptr));
-}
-
-// #define TYPE_HASH_OF(x) TYPE_HASH(__typeof__(x))
-
 typedef struct { int x, y; } Point;
 
 int main(void) {
     VarArray a;
-    if (!va_init(&a/*, 2*/)) return 1;
+    if (!va_init(&a)) return 1;
 
     // push de inteiro
     int iv = 42;
-    va_push_copy(&a, &iv, sizeof iv, /*TYPE_HASH*/TYPE_TAG(int));
+    va_push(&a, iv);
 
     // push de string (inclui '\0')
-    va_push_cstr(&a, "hello");
+    va_push_str(&a, "hello");
 
     // push de struct
     Point p = {3, 4};
-    va_push_copy(&a, &p, sizeof p, /*TYPE_HASH*/TYPE_TAG(Point));
+    va_push(&a, p);
 
-    // leitura com checagem de hash (opcional, mas recomendável)
+    // leitura com checagem de hash
     const Object *o0 = va_get_cptr(&a, 0);
-    if (o0 && o0->type_hash == /*TYPE_HASH*/TYPE_TAG(int)) {
+    if (o0 && o0->type_hash == VA_TYPE_HASH(int)) {
         printf("int: %d\n", *(int*)o0->value);
     }
     assert(*(int*)o0->value == 42);
 
     const Object *o1 = va_get_cptr(&a, 1);
-    if (o1 && o1->type_hash == TYPE_TAG(char_ptr)) {
+    if (o1 && o1->type_hash == VA_TYPE_HASH(char_ptr)) {
         printf("str: %s\n", (char*)o1->value);
     }
 
     const Object *o2 = va_get_cptr(&a, 2);
-    if (o2 && o2->type_hash == TYPE_TAG(Point)) {
+    if (o2 && o2->type_hash == VA_TYPE_HASH(Point)) {
         Point *pp = (Point*)o2->value;
         printf("Point{%d,%d}\n", pp->x, pp->y);
     }
 
     // replace
     int nx = 777;
-    va_replace_copy(&a, 0, &nx, sizeof nx, TYPE_TAG(int));
+    va_replace_copy(&a, 0, &nx, sizeof nx, VA_TYPE_HASH(int));
     printf("int: %d\n", *(int*)o0->value);
 
     o0 = va_get_cptr(&a, 0);
@@ -167,5 +142,6 @@ int main(void) {
     va_pop(&a);
 
     va_free(&a);
+
     return 0;
 }
