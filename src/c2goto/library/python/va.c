@@ -5,33 +5,6 @@
 #include <assert.h>
 #include <stdio.h>
 
-// #define TYPE_TAG(T)      ((size_t)&TAG_##T)
-// #define DEF_TYPE_TAG(T)  static const char TAG_##T = 0
-
-// #define TYPE_EQ(tag, T)         ((tag) == TYPE_TAG(T))
-// #define OBJ_IS(obj_ptr, T)      ((obj_ptr)->type_tag == TYPE_TAG(T))
-
-static inline size_t va_hash_string(const char *str) {
-    size_t hash = 5381;
-    int c;
-    while ((c = *str++)) {
-        hash = ((hash << 5) + hash) + c;
-    }
-    return hash;
-}
-
-// Macro para obter hash de tipo dinamicamente
-#define VA_TYPE_HASH(T) va_hash_string(#T)
-
-// Macro para push com tipo automático
-#define va_push(array, var) \
-    va_push_copy((array), &(var), sizeof(var), VA_TYPE_HASH(__typeof__(var)))
-
-// Macro para push de string
-#define va_push_str(array, str) \
-    va_push_copy((array), (str), strlen(str) + 1, VA_TYPE_HASH(char*))
-
-
 typedef struct {
     const void *value;     // ponteiro para dados
     size_t      size;      // tamanho em bytes do payload
@@ -42,9 +15,11 @@ typedef struct {
     size_t size;      // quantidade em uso
 } VarArray;
 
+
 // UM ÚNICO array infinito que armazena diretamente os Objects
 __attribute__((annotate("__ESBMC_inf_size"))) 
 static Object __ESBMC_objects[1];
+
 
 /* ---------- lifecycle ---------- */
 static inline bool va_init(VarArray *a) {
@@ -77,6 +52,7 @@ static inline const Object* va_get_cptr(const VarArray *a, size_t index) {
     if (index >= a->size) return NULL;
     return &__ESBMC_objects[index];
 }
+
 static inline Object* va_get_ptr(VarArray *a, size_t index) {
     if (index >= a->size) return NULL;
     return &__ESBMC_objects[index];
@@ -88,6 +64,26 @@ static inline bool va_pop(VarArray *a) {
     a->size--;
     return true;
 }
+
+static inline size_t va_hash_string(const char *str) {
+    size_t hash = 5381;
+    int c;
+    while ((c = *str++)) {
+        hash = ((hash << 5) + hash) + c;
+    }
+    return hash;
+}
+
+// Macro para obter hash de tipo dinamicamente
+#define VA_TYPE_HASH(T) va_hash_string(#T)
+
+// Macro para push com tipo automático
+#define va_push(array, var) \
+    va_push_copy((array), &(var), sizeof(var), VA_TYPE_HASH(__typeof__(var)))
+
+// Macro para push de string
+#define va_push_str(array, str) \
+    va_push_copy((array), (str), strlen(str) + 1, VA_TYPE_HASH(char*))
 
 #define va_get_as(array, index, T) \
     ({ \
@@ -102,7 +98,9 @@ static inline bool va_pop(VarArray *a) {
         obj && obj->type_hash == VA_TYPE_HASH(T); \
     })
 
+
 typedef struct { int x, y; } Point;
+
 
 int main(void) {
     VarArray a;
@@ -126,11 +124,12 @@ int main(void) {
     }
     assert(*(int*)o0->value == 42);
 
-    // int *int_ptr = va_get_as(&a, 0, int);
-    // if (int_ptr) {
-    //     printf("int: %d\n", *int_ptr);
-    //     assert(*int_ptr == 42);
-    // }
+    // leitura com checagem automatica
+    int *int_ptr = va_get_as(&a, 0, int);
+    if (int_ptr) {
+        printf("int: %d\n", *int_ptr);
+        assert(*int_ptr == 41); // This assert is not failing
+    }
 
     const Object *o1 = va_get_cptr(&a, 1);
     if (o1 && o1->type_hash == VA_TYPE_HASH(char_ptr)) {
@@ -141,7 +140,9 @@ int main(void) {
     if (o2 && o2->type_hash == VA_TYPE_HASH(Point)) {
         Point *pp = (Point*)o2->value;
         printf("Point{%d,%d}\n", pp->x, pp->y);
+        assert(pp->x == 32);
     }
+    assert(((Point*)o2->value)->x == 3);
 
     if (va_is_type(&a, 0, int)) {
         printf("Index 0 é um int\n");
@@ -150,10 +151,8 @@ int main(void) {
     // replace
     int nx = 777;
     va_replace_copy(&a, 0, &nx, sizeof nx, VA_TYPE_HASH(int));
-    // printf("int: %d\n", *int_ptr);
-
+    
     o0 = va_get_cptr(&a, 0);
-    // int_ptr = va_get_as(&a, 0, int);
     assert(*(int*)o0->value == 777);
 
     //erase index 1 (string) TODO: Mark element as invalid
