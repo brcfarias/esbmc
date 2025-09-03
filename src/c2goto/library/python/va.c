@@ -7,29 +7,45 @@
 
 typedef struct
 {
-  const void *value; // pointer to data
-  size_t type_hash;  // type name hash
+  const void *value; // data pointer
+  size_t type_id;    // hashed type name
 } Object;
 
 typedef struct
 {
-  Object *objects;
-  size_t size; // number of elements in use
+  Object *items;
+  size_t size;      // elements in use
 } List;
 
-/* ---------- initialisation ---------- */
-static inline bool list_init(List *l, Object *objects)
+/* ---------- init ---------- */
+static inline bool list_init(List *l, Object *backing)
 {
-  l->objects = objects;
+  l->items = backing;
   l->size = 0;
   return true;
 }
 
-/* ---------- push element ---------- */
-static inline bool list_push(List *l, const void *value, size_t type_hash)
+/* ---------- bounds check ---------- */
+static inline bool list_in_bounds(const List *l, size_t index) {
+  return index < l->size;
+}
+
+/* ---------- getters ---------- */
+static inline Object *list_at(List *l, size_t index)
 {
-  l->objects[l->size].value = value;
-  l->objects[l->size].type_hash = type_hash;
+  return list_in_bounds(l, index) ? &l->items[index] : NULL;
+}
+
+static inline const Object *list_cat(const List *l, size_t index)
+{
+  return list_in_bounds(l, index) ? &l->items[index] : NULL;
+}
+
+/* ---------- push element ---------- */
+static inline bool list_push(List *l, const void *value, size_t type_id)
+{
+  l->items[l->size].value = value;
+  l->items[l->size].type_id = type_id;
   l->size++;
   return true;
 }
@@ -40,24 +56,9 @@ list_replace(List *l, size_t index, const void *value, size_t type_hash)
 {
   if (index >= l->size)
     return false;
-  l->objects[index].value = value;
-  l->objects[index].type_hash = type_hash;
+  l->items[index].value = value;
+  l->items[index].type_id = type_hash;
   return true;
-}
-
-/* ---------- getters ---------- */
-static inline const Object *list_get_cptr(const List *l, size_t index)
-{
-  if (index >= l->size)
-    return NULL;
-  return &l->objects[index];
-}
-
-static inline Object *list_get_ptr(List *l, size_t index)
-{
-  if (index >= l->size)
-    return NULL;
-  return &l->objects[index];
 }
 
 /* ---------- pop / erase ---------- */
@@ -98,7 +99,7 @@ static inline size_t list_hash_string(const char *str)
 #define list_get_as(array, index, ptr, T)                                        \
   do                                                                           \
   {                                                                            \
-    const Object *obj = list_get_cptr((array), (index));                       \
+    const Object *obj = list_cat((array), (index));                       \
     *(ptr) = (obj && obj->type_hash == TYPE_HASH(T)) ? (T *)obj->value : NULL; \
   } while (0)
 
@@ -118,10 +119,10 @@ typedef struct
 int main(void)
 {
   __attribute__((
-    annotate("__ESBMC_inf_size"))) static Object __ESBMC_objects[1];
+    annotate("__ESBMC_inf_size"))) static Object storage[1];
 
   List l;
-  if (!list_init(&l, __ESBMC_objects))
+  if (!list_init(&l, storage))
     return 1;
 
   // push integer
@@ -136,8 +137,8 @@ int main(void)
   list_push(&l, &p, list_hash_string("Point"));
 
   // read with hash check
-  const Object *o0 = list_get_cptr(&l, 0);
-  if (o0 && o0->type_hash != list_hash_string("int"))
+  const Object *o0 = list_cat(&l, 0);
+  if (o0 && o0->type_id != list_hash_string("int"))
   {
     assert(0);
   }
@@ -159,16 +160,16 @@ int main(void)
 #endif
 
   // read with hash check
-  const Object *o1 = list_get_cptr(&l, 1);
-  if (o1 && o1->type_hash != list_hash_string("char *"))
+  const Object *o1 = list_cat(&l, 1);
+  if (o1 && o1->type_id != list_hash_string("char *"))
   {
     assert(0);
   }
   assert(strcmp((char *)(o1->value), "hello") == 0);
 
   // read with hash check
-  const Object *o2 = list_get_cptr(&l, 2);
-  if (o2 && o2->type_hash != list_hash_string("Point"))
+  const Object *o2 = list_cat(&l, 2);
+  if (o2 && o2->type_id != list_hash_string("Point"))
   {
     assert(0);
   }
@@ -185,7 +186,7 @@ int main(void)
   int nx = 777;
   list_replace(&l, 0, &nx, list_hash_string("int"));
 
-  o0 = list_get_cptr(&l, 0);
+  o0 = list_cat(&l, 0);
   assert(*(int *)o0->value == 777);
 
 #if 0
@@ -196,7 +197,9 @@ int main(void)
   // pop last (Point)
   list_pop(&l);
 
-  va_free(&l);
+#if 0
+  list_free(&l);
+#endif
 
   return 0;
 }
