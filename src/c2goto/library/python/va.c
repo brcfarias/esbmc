@@ -74,22 +74,24 @@ static inline size_t va_hash_string(const char *str) {
     return hash;
 }
 
+static inline void* va_get_as_impl(const VarArray *a, size_t index, size_t type_hash) {
+    const Object *obj = va_get_cptr(a, index);
+    return (obj && obj->type_hash == type_hash) ? (void*)obj->value : NULL;
+}
+
 // Macro para obter hash de tipo dinamicamente
 #define VA_TYPE_HASH(T) va_hash_string(#T)
-
-// Macro para push com tipo automático
-#define va_push(array, var) \
-    va_push_copy((array), &(var), sizeof(var), VA_TYPE_HASH(__typeof__(var)))
 
 // Macro para push de string
 #define va_push_str(array, str) \
     va_push_copy((array), (str), strlen(str) + 1, VA_TYPE_HASH(char*))
 
-#define va_get_as(array, index, T) \
-    ({ \
+#define va_get_as(array, index, ptr, T) \
+    do { \
         const Object *obj = va_get_cptr((array), (index)); \
-        (obj && obj->type_hash == VA_TYPE_HASH(T)) ? (T*)obj->value : NULL; \
-    })
+        *(ptr) = (obj && obj->type_hash == VA_TYPE_HASH(T)) ? (T*)obj->value : NULL; \
+    } while(0)
+
 
 /* ---------- helper para verificar tipo ---------- */
 #define va_is_type(array, index, T) \
@@ -108,44 +110,50 @@ int main(void) {
 
     // push de inteiro
     int iv = 42;
-    va_push(&a, iv);
+    va_push_copy(&a, &iv, sizeof(iv), VA_TYPE_HASH(int));
 
     // push de string (inclui '\0')
     va_push_str(&a, "hello");
 
     // push de struct
     Point p = {3, 4};
-    va_push(&a, p);
+    va_push_copy(&a, &p, sizeof(p), VA_TYPE_HASH(Point));
 
     // leitura com checagem de hash
     const Object *o0 = va_get_cptr(&a, 0);
-    if (o0 && o0->type_hash == VA_TYPE_HASH(int)) {
-        printf("int: %d\n", *(int*)o0->value);
+    if (o0 && o0->type_hash != VA_TYPE_HASH(int)) {
+        assert(0);
     }
     assert(*(int*)o0->value == 42);
 
     // leitura com checagem automatica
-    int *int_ptr = va_get_as(&a, 0, int);
+    int *int_ptr = NULL;
+    va_get_as(&a, 0, &int_ptr, int);
     if (int_ptr) {
         printf("int: %d\n", *int_ptr);
-        assert(*int_ptr == 41); // This assert is not failing
     }
+    else {
+        assert(0);
+    }
+    assert(*int_ptr == 42);
+
 
     const Object *o1 = va_get_cptr(&a, 1);
-    if (o1 && o1->type_hash == VA_TYPE_HASH(char_ptr)) {
-        printf("str: %s\n", (char*)o1->value);
+    if (o1 && o1->type_hash != VA_TYPE_HASH(char*)) {
+        assert(0);
     }
+    assert(strcmp((char*)(o1->value), "hello") == 0);
+
 
     const Object *o2 = va_get_cptr(&a, 2);
-    if (o2 && o2->type_hash == VA_TYPE_HASH(Point)) {
-        Point *pp = (Point*)o2->value;
-        printf("Point{%d,%d}\n", pp->x, pp->y);
-        assert(pp->x == 32);
+    if (o2 && o2->type_hash != VA_TYPE_HASH(Point)) {
+        assert(0);
     }
     assert(((Point*)o2->value)->x == 3);
+    assert(((Point*)o2->value)->y == 4);
 
-    if (va_is_type(&a, 0, int)) {
-        printf("Index 0 é um int\n");
+    if (!va_is_type(&a, 0, int)) {
+        assert(0);
     }
 
     // replace
