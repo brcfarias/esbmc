@@ -1,8 +1,8 @@
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <assert.h>
 #include <stdio.h>
 
 typedef struct {
@@ -16,7 +16,6 @@ typedef struct {
 } VarArray;
 
 
-// UM ÚNICO array infinito que armazena diretamente os Objects
 __attribute__((annotate("__ESBMC_inf_size"))) 
 static Object __ESBMC_objects[1];
 
@@ -72,11 +71,6 @@ static inline size_t va_hash_string(const char *str) {
         hash = ((hash << 5) + hash) + c;
     }
     return hash;
-}
-
-static inline void* va_get_as_impl(const VarArray *a, size_t index, size_t type_hash) {
-    const Object *obj = va_get_cptr(a, index);
-    return (obj && obj->type_hash == type_hash) ? (void*)obj->value : NULL;
 }
 
 // Macro para obter hash de tipo dinamicamente
@@ -137,14 +131,14 @@ int main(void) {
     }
     assert(*int_ptr == 42);
 
-
+    // leitura com checagem de hash
     const Object *o1 = va_get_cptr(&a, 1);
     if (o1 && o1->type_hash != VA_TYPE_HASH(char*)) {
         assert(0);
     }
     assert(strcmp((char*)(o1->value), "hello") == 0);
 
-
+    // leitura com checagem de hash
     const Object *o2 = va_get_cptr(&a, 2);
     if (o2 && o2->type_hash != VA_TYPE_HASH(Point)) {
         assert(0);
