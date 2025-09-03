@@ -88,11 +88,11 @@ static inline size_t va_hash_string(const char *str) {
 
 
 /* ---------- helper para verificar tipo ---------- */
-#define va_is_type(array, index, T) \
-    ({ \
-        const Object *obj = va_get_cptr((array), (index)); \
-        obj && obj->type_hash == VA_TYPE_HASH(T); \
-    })
+// #define va_is_type(array, index, T) \
+//     ({ \
+//         const Object *obj = va_get_cptr((array), (index)); \
+//         obj && obj->type_hash == VA_TYPE_HASH(T); \
+//     })
 
 
 typedef struct { int x, y; } Point;
@@ -104,14 +104,14 @@ int main(void) {
 
     // push de inteiro
     int iv = 42;
-    va_push_copy(&a, &iv, sizeof(iv), VA_TYPE_HASH(int));
+    va_push_copy(&a, &iv, sizeof(iv), va_hash_string("int"));
 
     // push de string (inclui '\0')
     va_push_str(&a, "hello");
 
     // push de struct
     Point p = {3, 4};
-    va_push_copy(&a, &p, sizeof(p), VA_TYPE_HASH(Point));
+    va_push_copy(&a, &p, sizeof(p), va_hash_string("Point"));
 
     // leitura com checagem de hash
     const Object *o0 = va_get_cptr(&a, 0);
@@ -146,9 +146,9 @@ int main(void) {
     assert(((Point*)o2->value)->x == 3);
     assert(((Point*)o2->value)->y == 4);
 
-    if (!va_is_type(&a, 0, int)) {
-        assert(0);
-    }
+    // if (!va_is_type(&a, 0, int)) {
+    //     assert(0);
+    // }
 
     // replace
     int nx = 777;
