@@ -129,7 +129,7 @@ int main(void)
   Point p = {3, 4};
   va_push_copy(&a, &p, va_hash_string("Point"));
 
-  // leitura com checagem de hash
+  // read with hash check
   const Object *o0 = va_get_cptr(&a, 0);
   if (o0 && o0->type_hash != VA_TYPE_HASH(int))
   {
@@ -137,7 +137,7 @@ int main(void)
   }
   assert(*(int *)o0->value == 42);
 
-  // leitura com checagem automatica
+  // read with automatic type check
   int *int_ptr = NULL;
   va_get_as(&a, 0, &int_ptr, int);
   if (int_ptr)
@@ -150,7 +150,7 @@ int main(void)
   }
   assert(*int_ptr == 42);
 
-  // leitura com checagem de hash
+  // read with hash check
   const Object *o1 = va_get_cptr(&a, 1);
   if (o1 && o1->type_hash != VA_TYPE_HASH(char *))
   {
