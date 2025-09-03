@@ -77,13 +77,6 @@ static inline bool list_pop(List *l)
   return true;
 }
 
-#if 0
-static inline void list_free(List *a)
-{
-  a->size = 0;
-}
-#endif
-
 /* ---------- type hashing ---------- */
 static inline size_t list_hash_string(const char *str)
 {
@@ -95,6 +88,14 @@ static inline size_t list_hash_string(const char *str)
   }
   return hash;
 }
+
+#if 0
+static inline void list_free(List *a)
+{
+  a->size = 0;
+}
+#endif
+
 
 #if 0
 // Macro to get a type hash dynamically
@@ -134,7 +135,7 @@ int main(void)
   Point p = {3, 4};
   list_push(&l, &p, list_hash_string("Point"));
 
-  /* check with typed accessor */
+  /* get elements */
   int *ip = (int *)list_get_as(&l, 0, list_hash_string("int"));
   assert(ip && *ip == 42);
 
