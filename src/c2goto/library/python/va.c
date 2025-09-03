@@ -10,7 +10,9 @@ typedef struct {
     size_t      type_hash; // type name hash
 } Object;
 
+
 typedef struct {
+	Object* objects;
     size_t size;      // number of elements in use
 } VarArray;
 
@@ -21,6 +23,7 @@ static Object __ESBMC_objects[1];
 
 /* ---------- lifecycle ---------- */
 static inline bool va_init(VarArray *a) {
+	a->objects = __ESBMC_objects;
     a->size = 0;
     return true;
 }
@@ -30,28 +33,28 @@ static inline void va_free(VarArray *a) {
 }
 
 static inline bool va_push_copy(VarArray *a, const void *data, size_t type_hash) {
-    __ESBMC_objects[a->size].value = data;
-    __ESBMC_objects[a->size].type_hash = type_hash;
+	a->objects[a->size].value = data;
+	a->objects[a->size].type_hash = type_hash;
     a->size++;
     return true;
 }
 
 static inline bool va_replace_copy(VarArray *a, size_t index, const void *data, size_t type_hash) {
     if (index >= a->size) return false;
-    __ESBMC_objects[index].value = data;
-    __ESBMC_objects[index].type_hash = type_hash;
+    a->objects[index].value = data;
+    a->objects[index].type_hash = type_hash;
     return true;
 }
 
 /* ---------- getters ---------- */
 static inline const Object* va_get_cptr(const VarArray *a, size_t index) {
     if (index >= a->size) return NULL;
-    return &__ESBMC_objects[index];
+    return &a->objects[index];
 }
 
 static inline Object* va_get_ptr(VarArray *a, size_t index) {
     if (index >= a->size) return NULL;
-    return &__ESBMC_objects[index];
+    return &a->objects[index];
 }
 
 /* ---------- pop / erase ---------- */
@@ -70,10 +73,10 @@ static inline size_t va_hash_string(const char *str) {
     return hash;
 }
 
-// Macro para obter hash de tipo dinamicamente
+// Macro to get a type hash dynamically
 #define VA_TYPE_HASH(T) va_hash_string(#T)
 
-// Macro para push de string
+// Macro to push a string
 #define va_push_str(array, str) \
     va_push_copy((array), (str), VA_TYPE_HASH(char*))
 
@@ -99,14 +102,14 @@ int main(void) {
     VarArray a;
     if (!va_init(&a)) return 1;
 
-    // push de inteiro
+    // push integer
     int iv = 42;
     va_push_copy(&a, &iv, va_hash_string("int"));
 
-    // push de string (inclui '\0')
+    // push string (includes '\0')
     va_push_str(&a, "hello");
 
-    // push de struct
+    // push struct
     Point p = {3, 4};
     va_push_copy(&a, &p, va_hash_string("Point"));
 
