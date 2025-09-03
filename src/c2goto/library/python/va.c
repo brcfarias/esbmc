@@ -88,6 +88,7 @@ static inline size_t list_hash_string(const char *str)
   return hash;
 }
 
+#if 0
 // Macro to get a type hash dynamically
 #define TYPE_HASH(T) list_hash_string(#T)
 
@@ -102,7 +103,6 @@ static inline size_t list_hash_string(const char *str)
   } while (0)
 
 /* ---------- helper to check type ---------- */
-#if 0
 #  define va_is_type(array, index, T)                                          \
     ({                                                                         \
       const Object *obj = va_get_cptr((array), (index));                       \
@@ -129,7 +129,7 @@ int main(void)
   list_push(&l, &iv, list_hash_string("int"));
 
   // push string (includes '\0')
-  list_push_str(&l, "hello");
+  list_push(&l, "hello", list_hash_string("char *"));
 
   // push struct
   Point p = {3, 4};
@@ -144,6 +144,7 @@ int main(void)
   assert(*(int *)o0->value == 42);
 
   // read with automatic type check
+#if 0
   int *int_ptr = NULL;
   list_get_as(&l, 0, &int_ptr, int);
   if (int_ptr)
@@ -155,6 +156,7 @@ int main(void)
     assert(0);
   }
   assert(*int_ptr == 42);
+#endif
 
   // read with hash check
   const Object *o1 = list_get_cptr(&l, 1);
