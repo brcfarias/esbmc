@@ -14,7 +14,7 @@ typedef struct
 typedef struct
 {
   Object *items;
-  size_t size;      // elements in use
+  size_t size; // elements in use
 } List;
 
 /* ---------- init ---------- */
@@ -26,7 +26,8 @@ static inline bool list_init(List *l, Object *backing)
 }
 
 /* ---------- bounds check ---------- */
-static inline bool list_in_bounds(const List *l, size_t index) {
+static inline bool list_in_bounds(const List *l, size_t index)
+{
   return index < l->size;
 }
 
@@ -41,6 +42,12 @@ static inline const Object *list_cat(const List *l, size_t index)
   return list_in_bounds(l, index) ? &l->items[index] : NULL;
 }
 
+static inline void *list_get_as(const List *l, size_t i, size_t expect_type)
+{
+  const Object *o = list_cat(l, i);
+  return (o && o->type_id == expect_type) ? (void *)o->value : NULL;
+}
+
 /* ---------- push element ---------- */
 static inline bool list_push(List *l, const void *value, size_t type_id)
 {
@@ -52,12 +59,12 @@ static inline bool list_push(List *l, const void *value, size_t type_id)
 
 /* ---------- replace element ---------- */
 static inline bool
-list_replace(List *l, size_t index, const void *value, size_t type_hash)
+list_replace(List *l, size_t index, const void *new_value, size_t type_id)
 {
   if (index >= l->size)
     return false;
-  l->items[index].value = value;
-  l->items[index].type_id = type_hash;
+  l->items[index].value = new_value;
+  l->items[index].type_id = type_id;
   return true;
 }
 
@@ -91,20 +98,13 @@ static inline size_t list_hash_string(const char *str)
 
 #if 0
 // Macro to get a type hash dynamically
-#define TYPE_HASH(T) list_hash_string(#T)
+#  define TYPE_HASH(T) list_hash_string(#  T)
 
 // Macro to push a string
-#define list_push_str(array, str) list_push((array), (str), TYPE_HASH(char *))
-
-#define list_get_as(array, index, ptr, T)                                        \
-  do                                                                           \
-  {                                                                            \
-    const Object *obj = list_cat((array), (index));                       \
-    *(ptr) = (obj && obj->type_hash == TYPE_HASH(T)) ? (T *)obj->value : NULL; \
-  } while (0)
+#  define list_push_str(array, str) list_push((array), (str), TYPE_HASH(char *))
 
 /* ---------- helper to check type ---------- */
-#  define va_is_type(array, index, T)                                          \
+#  define list_is_type(array, index, T)                                          \
     ({                                                                         \
       const Object *obj = va_get_cptr((array), (index));                       \
       obj && obj->type_hash == TYPE_HASH(T);                                   \
@@ -118,88 +118,46 @@ typedef struct
 
 int main(void)
 {
-  __attribute__((
-    annotate("__ESBMC_inf_size"))) static Object storage[1];
+  __attribute__((annotate("__ESBMC_inf_size"))) static Object storage[1];
 
   List l;
-  if (!list_init(&l, storage))
-    return 1;
+  list_init(&l, storage);
 
   // push integer
   int iv = 42;
-  list_push(&l, &iv, list_hash_string("int"));
+  assert(list_push(&l, &iv, list_hash_string("int")));
 
   // push string (includes '\0')
-  list_push(&l, "hello", list_hash_string("char *"));
+  assert(list_push(&l, "hello", list_hash_string("char *")));
 
   // push struct
   Point p = {3, 4};
   list_push(&l, &p, list_hash_string("Point"));
 
-  // read with hash check
-  const Object *o0 = list_cat(&l, 0);
-  if (o0 && o0->type_id != list_hash_string("int"))
-  {
-    assert(0);
-  }
-  assert(*(int *)o0->value == 42);
+  /* check with typed accessor */
+  int *ip = (int *)list_get_as(&l, 0, list_hash_string("int"));
+  assert(ip && *ip == 42);
 
-  // read with automatic type check
-#if 0
-  int *int_ptr = NULL;
-  list_get_as(&l, 0, &int_ptr, int);
-  if (int_ptr)
-  {
-    printf("int: %d\n", *int_ptr);
-  }
-  else
-  {
-    assert(0);
-  }
-  assert(*int_ptr == 42);
-#endif
+  char *sp = (char *)list_get_as(&l, 1, list_hash_string("char *"));
+  assert(sp && strcmp(sp, "hello") == 0);
 
-  // read with hash check
-  const Object *o1 = list_cat(&l, 1);
-  if (o1 && o1->type_id != list_hash_string("char *"))
-  {
-    assert(0);
-  }
-  assert(strcmp((char *)(o1->value), "hello") == 0);
-
-  // read with hash check
-  const Object *o2 = list_cat(&l, 2);
-  if (o2 && o2->type_id != list_hash_string("Point"))
-  {
-    assert(0);
-  }
-  assert(((Point *)o2->value)->x == 3);
-  assert(((Point *)o2->value)->y == 4);
-
-#if 0
-   if (!va_is_type(&l, 0, int)) {
-       assert(0);
-   }
-#endif
+  Point *pp = (Point *)list_get_as(&l, 2, list_hash_string("Point"));
+  assert(pp && pp->x == 3 && pp->y == 4);
 
   // replace
   int nx = 777;
-  list_replace(&l, 0, &nx, list_hash_string("int"));
+  assert(list_replace(&l, 0, &nx, list_hash_string("int")));
 
-  o0 = list_cat(&l, 0);
-  assert(*(int *)o0->value == 777);
+  ip = (int *)list_get_as(&l, 0, list_hash_string("int"));
+  assert(ip && *ip == 777);
 
 #if 0
   //erase index 1 (string) TODO: Mark element as invalid
    va_erase(&l, 1);
 #endif
 
-  // pop last (Point)
-  list_pop(&l);
-
-#if 0
-  list_free(&l);
-#endif
+  /* pop last (Point) */
+  assert(list_pop(&l));
 
   return 0;
 }
