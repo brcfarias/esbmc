@@ -17,19 +17,12 @@ typedef struct
   size_t size; // number of elements in use
 } VarArray;
 
-__attribute__((annotate("__ESBMC_inf_size"))) static Object __ESBMC_objects[1];
-
 /* ---------- lifecycle ---------- */
-static inline bool va_init(VarArray *a)
+static inline bool va_init(VarArray *a, Object *objects)
 {
-  a->objects = __ESBMC_objects;
+  a->objects = objects;
   a->size = 0;
   return true;
-}
-
-static inline void va_free(VarArray *a)
-{
-  a->size = 0;
 }
 
 static inline bool va_push_copy(VarArray *a, const void *data, size_t type_hash)
@@ -85,6 +78,11 @@ static inline size_t va_hash_string(const char *str)
   return hash;
 }
 
+static inline void va_free(VarArray *a)
+{
+  a->size = 0;
+}
+
 // Macro to get a type hash dynamically
 #define VA_TYPE_HASH(T) va_hash_string(#T)
 
@@ -114,8 +112,11 @@ typedef struct
 
 int main(void)
 {
+  __attribute__((
+    annotate("__ESBMC_inf_size"))) static Object __ESBMC_objects[1];
+
   VarArray a;
-  if (!va_init(&a))
+  if (!va_init(&a, __ESBMC_objects))
     return 1;
 
   // push integer
