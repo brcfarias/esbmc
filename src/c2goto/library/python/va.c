@@ -15,59 +15,69 @@ typedef struct
 {
   Object *objects;
   size_t size; // number of elements in use
-} VarArray;
+} List;
 
-/* ---------- lifecycle ---------- */
-static inline bool va_init(VarArray *a, Object *objects)
+/* ---------- initialisation ---------- */
+static inline bool list_init(List *l, Object *objects)
 {
-  a->objects = objects;
-  a->size = 0;
+  l->objects = objects;
+  l->size = 0;
   return true;
 }
 
-static inline bool va_push_copy(VarArray *a, const void *data, size_t type_hash)
+/* ---------- push element ---------- */
+static inline bool list_push(List *l, const void *value, size_t type_hash)
 {
-  a->objects[a->size].value = data;
-  a->objects[a->size].type_hash = type_hash;
-  a->size++;
+  l->objects[l->size].value = value;
+  l->objects[l->size].type_hash = type_hash;
+  l->size++;
   return true;
 }
 
+/* ---------- replace element ---------- */
 static inline bool
-va_replace_copy(VarArray *a, size_t index, const void *data, size_t type_hash)
+list_replace(List *l, size_t index, const void *value, size_t type_hash)
 {
-  if (index >= a->size)
+  if (index >= l->size)
     return false;
-  a->objects[index].value = data;
-  a->objects[index].type_hash = type_hash;
+  l->objects[index].value = value;
+  l->objects[index].type_hash = type_hash;
   return true;
 }
 
 /* ---------- getters ---------- */
-static inline const Object *va_get_cptr(const VarArray *a, size_t index)
+static inline const Object *list_get_cptr(const List *l, size_t index)
 {
-  if (index >= a->size)
+  if (index >= l->size)
     return NULL;
-  return &a->objects[index];
+  return &l->objects[index];
 }
 
-static inline Object *va_get_ptr(VarArray *a, size_t index)
+static inline Object *list_get_ptr(List *l, size_t index)
 {
-  if (index >= a->size)
+  if (index >= l->size)
     return NULL;
-  return &a->objects[index];
+  return &l->objects[index];
 }
 
 /* ---------- pop / erase ---------- */
-static inline bool va_pop(VarArray *a)
+static inline bool list_pop(List *l)
 {
-  if (a->size == 0)
+  if (l->size == 0)
     return false;
-  a->size--;
+  l->size--;
   return true;
 }
 
-static inline size_t va_hash_string(const char *str)
+#if 0
+static inline void list_free(List *a)
+{
+  a->size = 0;
+}
+#endif
+
+/* ---------- type hashing ---------- */
+static inline size_t list_hash_string(const char *str)
 {
   size_t hash = 5381;
   int c;
@@ -78,32 +88,27 @@ static inline size_t va_hash_string(const char *str)
   return hash;
 }
 
-static inline void va_free(VarArray *a)
-{
-  a->size = 0;
-}
-
 // Macro to get a type hash dynamically
-#define VA_TYPE_HASH(T) va_hash_string(#T)
+#define TYPE_HASH(T) list_hash_string(#T)
 
 // Macro to push a string
-#define va_push_str(array, str)                                                \
-  va_push_copy((array), (str), VA_TYPE_HASH(char *))
+#define list_push_str(array, str) list_push((array), (str), TYPE_HASH(char *))
 
-#define va_get_as(array, index, ptr, T)                                        \
+#define list_get_as(array, index, ptr, T)                                        \
   do                                                                           \
   {                                                                            \
-    const Object *obj = va_get_cptr((array), (index));                         \
-    *(ptr) =                                                                   \
-      (obj && obj->type_hash == VA_TYPE_HASH(T)) ? (T *)obj->value : NULL;     \
+    const Object *obj = list_get_cptr((array), (index));                       \
+    *(ptr) = (obj && obj->type_hash == TYPE_HASH(T)) ? (T *)obj->value : NULL; \
   } while (0)
 
-/* ---------- helper para verificar tipo ---------- */
-// #define va_is_type(array, index, T) \
-//     ({ \
-//         const Object *obj = va_get_cptr((array), (index)); \
-//         obj && obj->type_hash == VA_TYPE_HASH(T); \
-//     })
+/* ---------- helper to check type ---------- */
+#if 0
+#  define va_is_type(array, index, T)                                          \
+    ({                                                                         \
+      const Object *obj = va_get_cptr((array), (index));                       \
+      obj && obj->type_hash == TYPE_HASH(T);                                   \
+    })
+#endif
 
 typedef struct
 {
@@ -115,24 +120,24 @@ int main(void)
   __attribute__((
     annotate("__ESBMC_inf_size"))) static Object __ESBMC_objects[1];
 
-  VarArray a;
-  if (!va_init(&a, __ESBMC_objects))
+  List l;
+  if (!list_init(&l, __ESBMC_objects))
     return 1;
 
   // push integer
   int iv = 42;
-  va_push_copy(&a, &iv, va_hash_string("int"));
+  list_push(&l, &iv, list_hash_string("int"));
 
   // push string (includes '\0')
-  va_push_str(&a, "hello");
+  list_push_str(&l, "hello");
 
   // push struct
   Point p = {3, 4};
-  va_push_copy(&a, &p, va_hash_string("Point"));
+  list_push(&l, &p, list_hash_string("Point"));
 
   // read with hash check
-  const Object *o0 = va_get_cptr(&a, 0);
-  if (o0 && o0->type_hash != VA_TYPE_HASH(int))
+  const Object *o0 = list_get_cptr(&l, 0);
+  if (o0 && o0->type_hash != list_hash_string("int"))
   {
     assert(0);
   }
@@ -140,7 +145,7 @@ int main(void)
 
   // read with automatic type check
   int *int_ptr = NULL;
-  va_get_as(&a, 0, &int_ptr, int);
+  list_get_as(&l, 0, &int_ptr, int);
   if (int_ptr)
   {
     printf("int: %d\n", *int_ptr);
@@ -152,40 +157,44 @@ int main(void)
   assert(*int_ptr == 42);
 
   // read with hash check
-  const Object *o1 = va_get_cptr(&a, 1);
-  if (o1 && o1->type_hash != VA_TYPE_HASH(char *))
+  const Object *o1 = list_get_cptr(&l, 1);
+  if (o1 && o1->type_hash != list_hash_string("char *"))
   {
     assert(0);
   }
   assert(strcmp((char *)(o1->value), "hello") == 0);
 
-  // leitura com checagem de hash
-  const Object *o2 = va_get_cptr(&a, 2);
-  if (o2 && o2->type_hash != VA_TYPE_HASH(Point))
+  // read with hash check
+  const Object *o2 = list_get_cptr(&l, 2);
+  if (o2 && o2->type_hash != list_hash_string("Point"))
   {
     assert(0);
   }
   assert(((Point *)o2->value)->x == 3);
   assert(((Point *)o2->value)->y == 4);
 
-  // if (!va_is_type(&a, 0, int)) {
-  //     assert(0);
-  // }
+#if 0
+   if (!va_is_type(&l, 0, int)) {
+       assert(0);
+   }
+#endif
 
   // replace
   int nx = 777;
-  va_replace_copy(&a, 0, &nx, VA_TYPE_HASH(int));
+  list_replace(&l, 0, &nx, list_hash_string("int"));
 
-  o0 = va_get_cptr(&a, 0);
+  o0 = list_get_cptr(&l, 0);
   assert(*(int *)o0->value == 777);
 
+#if 0
   //erase index 1 (string) TODO: Mark element as invalid
-  // va_erase(&a, 1);
+   va_erase(&l, 1);
+#endif
 
-  // pop último (Point)
-  va_pop(&a);
+  // pop last (Point)
+  list_pop(&l);
 
-  va_free(&a);
+  va_free(&l);
 
   return 0;
 }
