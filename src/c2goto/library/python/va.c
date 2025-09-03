@@ -6,13 +6,12 @@
 #include <stdio.h>
 
 typedef struct {
-    const void *value;     // ponteiro para dados
-    size_t      size;      // tamanho em bytes do payload
-    size_t      type_hash; // hash do "tipo"
+    const void *value;     // pointer to data
+    size_t      type_hash; // type name hash
 } Object;
 
 typedef struct {
-    size_t size;      // quantidade em uso
+    size_t size;      // number of elements in use
 } VarArray;
 
 
@@ -30,18 +29,16 @@ static inline void va_free(VarArray *a) {
     a->size = 0;
 }
 
-static inline bool va_push_copy(VarArray *a, const void *data, size_t len, size_t type_hash) {
+static inline bool va_push_copy(VarArray *a, const void *data, size_t type_hash) {
     __ESBMC_objects[a->size].value = data;
-    __ESBMC_objects[a->size].size = len;
     __ESBMC_objects[a->size].type_hash = type_hash;
     a->size++;
     return true;
 }
 
-static inline bool va_replace_copy(VarArray *a, size_t index, const void *data, size_t len, size_t type_hash) {
+static inline bool va_replace_copy(VarArray *a, size_t index, const void *data, size_t type_hash) {
     if (index >= a->size) return false;
     __ESBMC_objects[index].value = data;
-    __ESBMC_objects[index].size = len;
     __ESBMC_objects[index].type_hash = type_hash;
     return true;
 }
@@ -78,7 +75,7 @@ static inline size_t va_hash_string(const char *str) {
 
 // Macro para push de string
 #define va_push_str(array, str) \
-    va_push_copy((array), (str), strlen(str) + 1, VA_TYPE_HASH(char*))
+    va_push_copy((array), (str), VA_TYPE_HASH(char*))
 
 #define va_get_as(array, index, ptr, T) \
     do { \
@@ -104,14 +101,14 @@ int main(void) {
 
     // push de inteiro
     int iv = 42;
-    va_push_copy(&a, &iv, sizeof(iv), va_hash_string("int"));
+    va_push_copy(&a, &iv, va_hash_string("int"));
 
     // push de string (inclui '\0')
     va_push_str(&a, "hello");
 
     // push de struct
     Point p = {3, 4};
-    va_push_copy(&a, &p, sizeof(p), va_hash_string("Point"));
+    va_push_copy(&a, &p, va_hash_string("Point"));
 
     // leitura com checagem de hash
     const Object *o0 = va_get_cptr(&a, 0);
@@ -152,7 +149,7 @@ int main(void) {
 
     // replace
     int nx = 777;
-    va_replace_copy(&a, 0, &nx, sizeof nx, VA_TYPE_HASH(int));
+    va_replace_copy(&a, 0, &nx, VA_TYPE_HASH(int));
     
     o0 = va_get_cptr(&a, 0);
     assert(*(int*)o0->value == 777);
