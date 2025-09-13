@@ -16,12 +16,16 @@ typedef struct
   size_t size; // elements in use
 } List;
 
-/* ---------- init ---------- */
-static inline bool list_init(List *l, Object *backing)
+/* ---------- create ---------- */
+static inline List* list_create(Object *backing)
 {
+  List *l = malloc(sizeof(List));
+
+  __ESBMC_assume(l != NULL);
+
   l->items = backing;
   l->size = 0;
-  return true;
+  return l;
 }
 
 /* ---------- bounds check ---------- */

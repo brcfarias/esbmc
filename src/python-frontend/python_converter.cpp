@@ -2114,10 +2114,8 @@ exprt python_converter::get_binary_operator_expr(const nlohmann::json &element)
     list_eq_func_call.function() = symbol_expr(*list_eq_func_sym);
     list_eq_func_call.lhs() = symbol_expr(eq_ret);
     // passing arguments
-    list_eq_func_call.arguments().push_back(
-      address_of_exprt(symbol_expr(*lhs_symbol))); // &l1
-    list_eq_func_call.arguments().push_back(
-      address_of_exprt(symbol_expr(*rhs_symbol))); // &l2
+    list_eq_func_call.arguments().push_back(symbol_expr(*lhs_symbol)); // l1
+    list_eq_func_call.arguments().push_back(symbol_expr(*rhs_symbol)); // l2
 
     list_eq_func_call.type() = bool_type();
     list_eq_func_call.location() = get_location_from_decl(element);
@@ -2935,8 +2933,7 @@ const typet python_converter::get_list_type()
   });
   assert(list_type_symbol);
 
-  // 2.2 Build list symbol
-  return symbol_typet(list_type_symbol->id);
+  return pointer_typet(symbol_typet(list_type_symbol->id));
 }
 
 exprt python_converter::build_push_list_call(
@@ -3030,8 +3027,7 @@ exprt python_converter::build_push_list_call(
   code_function_callt list_push_func_call;
   list_push_func_call.function() = symbol_expr(*list_push_func_sym);
   // passing arguments
-  list_push_func_call.arguments().push_back(
-    address_of_exprt(symbol_expr(list))); // &l
+  list_push_func_call.arguments().push_back(symbol_expr(list)); // l
   list_push_func_call.arguments().push_back(
     address_of_exprt(symbol_expr(tmp_list_elem_symbol))); // &var
   list_push_func_call.arguments().push_back(
@@ -3107,22 +3103,21 @@ exprt python_converter::get_expr(const nlohmann::json &element)
     list_decl.location() = get_location_from_decl(element);
     current_block->copy_to_operands(list_decl);
 
-    /* 3 - Build call to initialize the list with the infinity array */
-    const symbolt *list_init_func_sym =
-      symbol_table_.find_symbol("c:list.c@F@list_init");
-    assert(list_init_func_sym);
+    /* 3 - Build call to initialise the list with the infinity array */
+    const symbolt *list_create_func_sym =
+      symbol_table_.find_symbol("c:list.c@F@list_create");
+    assert(list_create_func_sym);
 
-    code_function_callt list_init_func_call;
-    list_init_func_call.function() = symbol_expr(*list_init_func_sym);
-    list_init_func_call.arguments().push_back(
-      address_of_exprt(symbol_expr(list_symbol)));
-    list_init_func_call.arguments().push_back(
+    code_function_callt list_create_func_call;
+    list_create_func_call.function() = symbol_expr(*list_create_func_sym);
+    list_create_func_call.lhs() = symbol_expr(list_symbol);
+    list_create_func_call.arguments().push_back(
       get_array_base_address(symbol_expr(inf_array_symbol)));
-    list_init_func_call.type() = bool_type();
-    list_init_func_call.location() = get_location_from_decl(element);
+    list_create_func_call.type() = list_type;
+    list_create_func_call.location() = get_location_from_decl(element);
 
-    // 3.1 Add list_init call to the block
-    current_block->copy_to_operands(list_init_func_call);
+    // 3.1 Add list_create call to the block
+    current_block->copy_to_operands(list_create_func_call);
 
     // 4 - Push list elements by list_push calls
     for (auto &e : element["elts"])
@@ -4013,7 +4008,7 @@ void python_converter::get_var_assign(
           }
         }
 
-        typet l_type = pointer_typet(get_list_type());
+        typet l_type = get_list_type();
         symbolt &tmp_var_symbol =
           create_tmp_symbol(ast_node, "tmp_var", l_type, gen_zero(l_type));
 
@@ -4024,11 +4019,7 @@ void python_converter::get_var_assign(
         rhs.op0() = symbol_expr(tmp_var_symbol);
         target_block.copy_to_operands(rhs);
 
-        dereference_exprt deref(l_type.subtype());
-        deref.op0() = symbol_expr(tmp_var_symbol);
-        rhs = deref;
-
-        code_assignt code_assign(lhs, rhs);
+        code_assignt code_assign(lhs, symbol_expr(tmp_var_symbol));
         code_assign.location() = location_begin;
         rhs = code_assign;
       }
@@ -4484,8 +4475,6 @@ void python_converter::get_function_definition(
 
     if (arg_type.is_array())
       arg_type = gen_pointer_type(arg_type.subtype());
-    else if (arg_type == get_list_type())
-      arg_type = gen_pointer_type(arg_type);
 
     assert(arg_type != typet());
 
