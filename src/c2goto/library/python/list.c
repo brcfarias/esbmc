@@ -17,7 +17,7 @@ typedef struct
 } List;
 
 /* ---------- create ---------- */
-static inline List* list_create(Object *backing)
+static inline List *list_create(Object *backing)
 {
   List *l = malloc(sizeof(List));
 
