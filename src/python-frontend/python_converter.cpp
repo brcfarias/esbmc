@@ -3361,7 +3361,7 @@ exprt python_converter::get_expr(const nlohmann::json &element)
           list_node["annotation"]["slice"]["id"].get<std::string>());
       }
       else if (
-        slice["_type"] == "Constant" ||
+        slice["_type"] == "Constant" || slice["_type"] == "BinOp" ||
         (slice["_type"] == "UnaryOp" &&
          slice["operand"]["_type"] == "Constant"))
       {
