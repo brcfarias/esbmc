@@ -3366,16 +3366,30 @@ exprt python_converter::get_expr(const nlohmann::json &element)
          slice["operand"]["_type"] == "Constant"))
       {
         const std::string &list_name = array.identifier().as_string();
-        try
+        if (list_type_map[list_name].empty())
         {
-          list_elem_type = list_type_map[list_name].at(index);
+          /* (Bruno): The referenced variable points to a list whose type map hasn’t been
+           * resolved yet (e.g., for function parameters). In this case, fall back
+           * to the node’s annotation. */
+          const nlohmann::json list_value_node = json_utils::get_var_value(
+            element["value"]["id"], current_func_name_, *ast_json);
+
+          list_elem_type = type_handler_.get_typet(
+            list_value_node["annotation"]["slice"]["id"].get<std::string>());
         }
-        catch (const std::out_of_range &)
+        else
         {
-          const locationt l = get_location_from_decl(element);
-          throw std::runtime_error(
-            "List out of bounds at " + l.get_file().as_string() +
-            " line: " + l.get_line().as_string());
+          try
+          {
+            list_elem_type = list_type_map[list_name].at(index);
+          }
+          catch (const std::out_of_range &)
+          {
+            const locationt l = get_location_from_decl(element);
+            throw std::runtime_error(
+              "List out of bounds at " + l.get_file().as_string() +
+              " line: " + l.get_line().as_string());
+          }
         }
       }
       else if (slice["_type"] == "Name")
@@ -4030,6 +4044,18 @@ void python_converter::get_var_assign(
     }
 
     adjust_statement_types(lhs, rhs);
+
+    // TODO: ## MOVE THIS PART TO LIST CLASS
+    // Update list t
+    if (lhs.type() == rhs.type() && lhs.type() == get_list_type())
+    {
+      const std::string &rhs_identifier = rhs.identifier().as_string();
+      if (!list_type_map[rhs_identifier].empty())
+      {
+        const std::string &lhs_identifier = lhs.identifier().as_string();
+        list_type_map[lhs_identifier] = list_type_map[rhs_identifier];
+      }
+    }
 
     code_assignt code_assign(lhs, rhs);
     code_assign.location() = location_begin;

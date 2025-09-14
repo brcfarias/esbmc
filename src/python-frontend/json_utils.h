@@ -232,6 +232,21 @@ const JsonType find_var_decl(
 }
 
 template <typename JsonType>
+const JsonType get_var_value(
+  const std::string &var_name,
+  const std::string &function,
+  const JsonType &ast)
+{
+  JsonType value = find_var_decl(var_name, function, ast);
+  while (!value.empty() && value["_type"] != "arg" &&
+         value["value"]["_type"] == "Name")
+  {
+    value = find_var_decl(value["value"]["id"], function, ast);
+  }
+  return value;
+}
+
+template <typename JsonType>
 const JsonType find_return_node(const JsonType &block)
 {
   for (const auto &stmt : block)
