@@ -2175,8 +2175,10 @@ exprt python_converter::get_binary_operator_expr(const nlohmann::json &element)
         assert(list_symbol);
 
         if (size_var->value.is_code())
+        {
           return create_variable_length_array_for_multiplication(
             element, list_symbol, size_var, list_elem);
+        }
 
         list_size = std::stoi(size_var->value.value().as_string(), nullptr, 2);
       }
@@ -3379,9 +3381,16 @@ exprt python_converter::get_expr(const nlohmann::json &element)
         }
         else
         {
+          int i = index;
+
+          /* For list-multiplication initializations (e.g., [1] * f), we can
+           * simply use the type of the first element for now.*/
+          if (list_node["value"]["_type"] == "BinOp")
+            i = 0;
+
           try
           {
-            list_elem_type = list_type_map[list_name].at(index);
+            list_elem_type = list_type_map[list_name].at(i);
           }
           catch (const std::out_of_range &)
           {
