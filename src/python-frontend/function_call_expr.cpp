@@ -1486,6 +1486,11 @@ exprt function_call_expr::get()
        (arg.type().is_pointer() &&
         arg.type().subtype() == converter_.get_list_type())))
     {
+      // tmp var for list_size() return
+      symbolt& tmp_list_ret = converter_.create_tmp_symbol(call_, "tmp_list_size_ret", signedbv_typet(64), exprt());
+      code_declt tmp_list_ret_decl(symbol_expr(tmp_list_ret));
+      converter_.current_block->copy_to_operands(tmp_list_ret_decl);
+
       symbolt *list_symbol = converter_.find_symbol(arg.identifier().c_str());
       assert(list_symbol);
 
@@ -1495,14 +1500,15 @@ exprt function_call_expr::get()
 
       code_function_callt list_size_func_call;
       list_size_func_call.function() = symbol_expr(*list_size_func_sym);
-
+      list_size_func_call.lhs() = symbol_expr(tmp_list_ret);
       // passing arguments to list_size
       list_size_func_call.arguments().push_back(symbol_expr(*list_symbol));
-
       // setting return type
-      list_size_func_call.type() = size_type();
+      list_size_func_call.type() = signedbv_typet(64);
 
-      return list_size_func_call;
+      converter_.current_block->copy_to_operands(list_size_func_call);
+
+      return symbol_expr(tmp_list_ret);
     }
 
     // Handle function calls used as arguments
