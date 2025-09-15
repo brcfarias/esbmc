@@ -3475,6 +3475,14 @@ exprt python_converter::get_expr(const nlohmann::json &element)
       member_exprt obj_value(
         symbol_expr(tmp_obj_symbol), "value", pointer_typet(empty_typet()));
 
+      {
+        exprt &base = obj_value.struct_op();
+        exprt deref("dereference");
+        deref.type() = base.type().subtype();
+        deref.move_to_operands(base);
+        base.swap(deref);
+      }
+
       // Direct typecast from obj->value (which is void*) to target type pointer
       typecast_exprt tc(obj_value, pointer_typet(list_elem_type));
 
