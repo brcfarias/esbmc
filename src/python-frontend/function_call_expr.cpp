@@ -1487,7 +1487,8 @@ exprt function_call_expr::get()
         arg.type().subtype() == converter_.get_list_type())))
     {
       // tmp var for list_size() return
-      symbolt& tmp_list_ret = converter_.create_tmp_symbol(call_, "tmp_list_size_ret", signedbv_typet(64), exprt());
+      symbolt &tmp_list_ret = converter_.create_tmp_symbol(
+        call_, "tmp_list_size_ret", signedbv_typet(64), exprt());
       code_declt tmp_list_ret_decl(symbol_expr(tmp_list_ret));
       converter_.current_block->copy_to_operands(tmp_list_ret_decl);
 
