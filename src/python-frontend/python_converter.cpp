@@ -3446,34 +3446,25 @@ exprt python_converter::get_expr(const nlohmann::json &element)
       // Add tmp variable to hold object*
       pointer_typet obj_type(get_list_element_type());
 
-      symbolt &tmp_obj_symbol =
-        create_tmp_symbol(element, "tmp_obj", obj_type, exprt());
-
-      code_declt tmp_obj_decl(symbol_expr(tmp_obj_symbol));
-      current_block->copy_to_operands(tmp_obj_decl);
-
       // Initialise tmp_obj with list_at() call return
       const symbolt *list_at_func_sym =
         symbol_table_.find_symbol("c:list.c@F@list_at");
       assert(list_at_func_sym);
 
-      code_function_callt list_at_call;
+      side_effect_expr_function_callt list_at_call;
       list_at_call.function() = symbol_expr(*list_at_func_sym);
       if (array.type().is_pointer())
         list_at_call.arguments().push_back(array); // &l
       else
         list_at_call.arguments().push_back(address_of_exprt(array)); // &l
+
       list_at_call.arguments().push_back(pos);
-      list_at_call.lhs() = symbol_expr(tmp_obj_symbol);
       list_at_call.type() = obj_type;
       list_at_call.location() = get_location_from_decl(element);
 
-      // 4.2.4 Add list_at call to the block
-      current_block->copy_to_operands(list_at_call);
-
       // Get obj->value and cast it to the correct type
       member_exprt obj_value(
-        symbol_expr(tmp_obj_symbol), "value", pointer_typet(empty_typet()));
+        list_at_call, "value", pointer_typet(empty_typet()));
 
       {
         exprt &base = obj_value.struct_op();
