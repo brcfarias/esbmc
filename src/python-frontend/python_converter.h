@@ -300,6 +300,11 @@ private:
     const nlohmann::json &op,
     const exprt &elem);
 
+  exprt build_list_at_call(
+    const exprt &list,
+    const exprt &index,
+    const nlohmann::json &element);
+
   symbolt *find_function_in_base_classes(
     const std::string &class_name,
     const std::string &symbol_id,
@@ -341,6 +346,8 @@ private:
 
   // Helper methods for binary operator expression handling
   void convert_function_calls_to_side_effects(exprt &lhs, exprt &rhs);
+
+  symbolt &create_list(const nlohmann::json &element);
 
   exprt handle_string_concatenation_with_promotion(
     exprt &lhs,

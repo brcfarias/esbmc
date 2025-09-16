@@ -150,6 +150,13 @@ list_push(List *l, const void *value, size_t type_id, size_t type_size)
   return true;
 }
 
+static inline bool list_push_object(List *l, Object *o)
+{
+  assert(l != NULL);
+  assert(o != NULL);
+  return list_push(l, o->value, o->type_id, o->size);
+}
+
 /* ---------- replace element ---------- */
 static inline bool
 list_replace(List *l, size_t index, const void *new_value, size_t type_id)
