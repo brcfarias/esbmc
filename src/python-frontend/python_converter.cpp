@@ -2195,7 +2195,9 @@ exprt python_converter::get_binary_operator_expr(const nlohmann::json &element)
     {
       current_block->copy_to_operands(
         build_push_list_call(*list_symbol, element, list_elem));
-      list_type_map[list_id].push_back(list_elem.type());
+
+      list_type_map[list_id].push_back(
+        std::make_pair(list_elem.identifier().as_string(), list_elem.type()));
     }
 
     return symbol_expr(*list_symbol);
@@ -3151,6 +3153,8 @@ exprt python_converter::get_expr(const nlohmann::json &element)
     /* 1 - Create infinity objects array */
     symbolt &list_symbol = create_list(element);
 
+    const std::string &list_id = list_symbol.id.as_string();
+
     // 4 - Push list elements by list_push calls
     for (auto &e : element["elts"])
     {
@@ -3159,11 +3163,8 @@ exprt python_converter::get_expr(const nlohmann::json &element)
         build_push_list_call(list_symbol, element, elem);
       current_block->copy_to_operands(list_push_func_call);
 
-      const std::string &list_id = (current_lhs)
-                                     ? current_lhs->identifier().as_string()
-                                     : list_symbol.id.as_string();
-
-      list_type_map[list_id].push_back(elem.type());
+      list_type_map[list_id].push_back(
+        std::make_pair(elem.identifier().as_string(), elem.type()));
     }
 
     expr = symbol_expr(list_symbol);
@@ -3408,15 +3409,20 @@ exprt python_converter::get_expr(const nlohmann::json &element)
            ++i)
       {
         exprt elt = get_expr(list_node["value"]["elts"][i]);
-        list_type_map[sliced_list.id.as_string()].push_back(elt.type());
+        list_type_map[sliced_list.id.as_string()].push_back(
+          std::make_pair(elt.identifier().as_string(), elt.type()));
       }
 
       return symbol_expr(sliced_list);
     }
     else
     {
-      nlohmann::json list_node = json_utils::find_var_decl(
-        element["value"]["id"], current_func_name_, *ast_json);
+      nlohmann::json list_node;
+      if (element["value"].contains("id"))
+      {
+        list_node = json_utils::find_var_decl(
+          element["value"]["id"], current_func_name_, *ast_json);
+      }
 
       exprt pos = get_expr(slice);
       int index = 0;
@@ -3461,7 +3467,21 @@ exprt python_converter::get_expr(const nlohmann::json &element)
       {
         typet list_elem_type;
 
-        if (list_node.is_null())
+        if (array.type() == get_list_type()) // Handle arrays of arrays
+        {
+          std::string &arr_elem_id =
+            list_type_map[array.identifier().as_string()].at(index).first;
+          list_elem_type =
+            list_type_map[array.identifier().as_string()].at(index).second;
+
+          if (list_elem_type == get_list_type())
+          {
+            symbolt *l = find_symbol(arr_elem_id);
+            assert(l);
+            return symbol_expr(*l);
+          }
+        }
+        else if (list_node.is_null())
         {
           // Handle case where list_node is not found - use default element type
           list_elem_type = get_list_element_type();
@@ -3494,12 +3514,12 @@ exprt python_converter::get_expr(const nlohmann::json &element)
 
             /* For list-multiplication initializations (e.g., [1] * f), we can
            * simply use the type of the first element for now.*/
-            if (list_node["value"]["_type"] == "BinOp")
+            if (!list_node.is_null() && list_node["value"]["_type"] == "BinOp")
               i = 0;
 
             try
             {
-              list_elem_type = list_type_map[list_name].at(i);
+              list_elem_type = list_type_map[list_name].at(i).second;
             }
             catch (const std::out_of_range &)
             {

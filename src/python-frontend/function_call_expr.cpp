@@ -1131,7 +1131,7 @@ exprt function_call_expr::handle_list_append() const
   }
 
   converter_.list_type_map[list_symbol->id.as_string()].push_back(
-    value_to_append.type());
+    std::make_pair(value_to_append.identifier().as_string(), value_to_append.type()));
 
   return converter_.build_push_list_call(*list_symbol, call_, value_to_append);
 }

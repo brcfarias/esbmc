@@ -9,6 +9,8 @@
 #include <nlohmann/json.hpp>
 #include <map>
 #include <set>
+#include <utility>
+
 
 class codet;
 class struct_typet;
@@ -391,8 +393,8 @@ private:
   std::map<std::string, std::set<std::string>> instance_attr_map;
   // Map imported modules to their corresponding paths
   std::unordered_map<std::string, std::string> imported_modules;
-  // Registry for list elements types
-  std::unordered_map<std::string, std::vector<typet>> list_type_map;
+  // <list_id, <elem_id, elem_type>>
+  std::unordered_map<std::string, std::vector<std::pair<std::string, typet>>> list_type_map;
 
   std::vector<std::string> global_declarations;
   std::vector<std::string> local_loads;
