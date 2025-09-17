@@ -3510,7 +3510,7 @@ exprt python_converter::get_expr(const nlohmann::json &element)
             }
           }
         }
-        else if (slice["_type"] == "Name")
+        else if (slice["_type"] == "Name") // Handling slicing with variables
         {
           if (!list_node.is_null() && list_node["_type"] == "arg")
           {
@@ -3536,17 +3536,17 @@ exprt python_converter::get_expr(const nlohmann::json &element)
               }
             }
 
-            // Check if we found a valid list node with the expected structure
-            if (
-              list_node.is_null() || !list_node.contains("value") ||
-              (!list_node["value"].is_array() &&
-               (!list_node["value"].contains("elts") ||
-                !list_node["value"]["elts"].is_array())))
+            if (!list_node.is_null() && list_node["_type"] == "arg")
             {
-              throw std::runtime_error(
-                "Indexing list with symbolic values are not supported yet.");
+              list_elem_type = type_handler_.get_typet(
+                list_node["annotation"]["slice"]["id"].get<std::string>());
             }
-            list_elem_type = get_expr(list_node["value"]["elts"][0]).type();
+            else
+            {
+              list_elem_type =
+                get_expr(json_utils::get_list_element(list_node["value"], 0))
+                  .type();
+            }
           }
         }
 

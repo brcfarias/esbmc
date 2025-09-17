@@ -247,6 +247,25 @@ const JsonType get_var_value(
 }
 
 template <typename JsonType>
+const JsonType get_list_element(const JsonType &list_value, int pos)
+{
+  if (list_value["_type"] == "List")
+  {
+    return list_value["elts"][pos];
+  }
+
+  if (list_value["_type"] == "BinOp")
+  {
+    if (list_value["left"]["_type"] == "List")
+      return list_value["left"]["elts"][pos];
+    if (list_value["rigth"]["_type"] == "List")
+      return list_value["right"]["elts"][pos];
+  }
+
+  return JsonType();
+}
+
+template <typename JsonType>
 const JsonType find_return_node(const JsonType &block)
 {
   for (const auto &stmt : block)
