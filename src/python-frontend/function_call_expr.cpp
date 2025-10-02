@@ -1111,6 +1111,10 @@ exprt function_call_expr::handle_list_insert() const
     *list_symbol, index_expr, call_, value_to_insert);
 }
 
+exprt function_call_expr::handle_list_remove() const {
+	return exprt();
+}
+
 bool function_call_expr::is_list_method_call() const
 {
   if (call_["func"]["_type"] != "Attribute")
@@ -1133,6 +1137,8 @@ exprt function_call_expr::handle_list_method() const
     return handle_list_append();
   if (method_name == "insert")
     return handle_list_insert();
+  if (method_name == "remove")
+      return handle_list_remove();
   // Add other methods as needed
 
   throw std::runtime_error("Unsupported list method: " + method_name);

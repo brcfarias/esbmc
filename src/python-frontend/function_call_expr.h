@@ -195,6 +195,7 @@ private:
   exprt handle_list_method() const;
   exprt handle_list_append() const;
   exprt handle_list_insert() const;
+  exprt handle_list_remove() const;
 
 protected:
   symbol_id function_id_;
