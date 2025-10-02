@@ -1113,6 +1113,39 @@ exprt function_call_expr::handle_list_insert() const
 
 exprt function_call_expr::handle_list_remove() const
 {
+  const auto &args = call_["args"];
+  if (args.size() != 1)
+    throw std::runtime_error("insert() takes exactly one argument");
+
+  std::string list_name = get_object_name();
+
+  symbol_id list_symbol_id = converter_.create_symbol_id();
+  list_symbol_id.set_object(list_name);
+  const symbolt *list_symbol =
+    converter_.find_symbol(list_symbol_id.to_string());
+
+  if (!list_symbol)
+    throw std::runtime_error("List variable not found: " + list_name);
+
+  exprt value_to_remove = converter_.get_expr(args[0]);
+
+  if (value_to_remove.is_constant())
+  {
+    symbolt &remove_value_symbol = converter_.create_tmp_symbol(
+      call_, "remove_value", size_type(), gen_zero(size_type()));
+    code_declt remove_value(symbol_expr(remove_value_symbol));
+    remove_value.copy_to_operands(value_to_remove);
+    converter_.current_block->copy_to_operands(remove_value);
+  }
+
+  python_list list(converter_, nlohmann::json());
+
+  // remote type info
+  /*list.add_type_info(
+    list_symbol->id.as_string(),
+    value_to_remove.identifier().as_string(),
+    value_to_remove.type());*/
+
   return exprt();
 }
 
