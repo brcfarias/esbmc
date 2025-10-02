@@ -163,6 +163,74 @@ static inline bool list_insert(
   return true;
 }
 
+static inline size_t list_find(const List *l, const void *value)
+{
+  if (!l || !value)
+    return SIZE_MAX;
+
+  size_t i = 0;
+  while (i < l->size)
+  {
+    const Object *obj = &l->items[i];
+
+    // Compare pointer addresses
+    if (obj->value == value)
+    {
+      return i;
+    }
+    ++i;
+  }
+
+  return SIZE_MAX; // Not found
+}
+
+static inline bool list_remove(List *l, const void *value)
+{
+  // Find the element
+  size_t index = list_find(l, value);
+
+  if (index == SIZE_MAX)
+    return false;
+
+  // Free the memory of the element being removed
+  free((void *)l->items[index].value);
+
+  // Shift all elements after index one position to the left
+  size_t elements_to_shift = l->size - index - 1;
+  if (elements_to_shift > 0)
+  {
+    memmove(
+      &l->items[index],
+      &l->items[index + 1],
+      elements_to_shift * sizeof(Object));
+  }
+
+  l->size--;
+  return true;
+}
+
+static inline bool list_remove(List *l, size_t index)
+{
+  if (!l || index >= l->size)
+    return false;
+
+  // Free the memory of the element being removed
+  free((void *)l->items[index].value);
+
+  // Shift all elements after index one position to the left
+  size_t elements_to_shift = l->size - index - 1;
+  if (elements_to_shift > 0)
+  {
+    memmove(
+      &l->items[index],
+      &l->items[index + 1],
+      elements_to_shift * sizeof(Object));
+  }
+
+  l->size--;
+  return true;
+}
+
 /* ---------- replace element ---------- */
 static inline bool
 list_replace(List *l, size_t index, const void *new_value, size_t type_id)
