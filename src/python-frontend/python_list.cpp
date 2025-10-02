@@ -280,8 +280,9 @@ exprt python_list::index(const exprt &array, const nlohmann::json &slice_node)
   return exprt();
 }
 
-exprt python_list::remove(const exprt &array, const exprt &value) {
-	return exprt();
+exprt python_list::remove(const exprt &array, const exprt &value)
+{
+  return exprt();
 }
 
 exprt python_list::handle_range_slice(
