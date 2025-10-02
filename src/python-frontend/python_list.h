@@ -33,8 +33,6 @@ public:
 
   exprt index(const exprt &array, const nlohmann::json &slice_node);
 
-  exprt remove(const exprt &array, const exprt &value);
-
   exprt compare(const exprt &l1, const exprt &l2, const std::string &op);
 
   exprt list_repetition(
@@ -44,6 +42,11 @@ public:
     const exprt &rhs);
 
   exprt build_push_list_call(
+    const symbolt &list,
+    const nlohmann::json &op,
+    const exprt &elem);
+
+  exprt build_remove_list_call(
     const symbolt &list,
     const nlohmann::json &op,
     const exprt &elem);

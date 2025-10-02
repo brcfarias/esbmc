@@ -141,6 +141,36 @@ exprt python_list::build_push_list_call(
   return push_func_call;
 }
 
+exprt python_list::build_remove_list_call(
+  const symbolt &list,
+  const nlohmann::json &op,
+  const exprt &elem)
+{
+  list_elem_info elem_info = get_list_element_info(op, elem);
+
+  const symbolt *remove_func_sym =
+    converter_.symbol_table().find_symbol("c:list.c@F@list_remove");
+
+  if (!remove_func_sym)
+  {
+    throw std::runtime_error("Remove function symbol not found");
+  }
+
+  code_function_callt remove_func_call;
+  remove_func_call.function() = symbol_expr(*remove_func_sym);
+  remove_func_call.arguments().push_back(symbol_expr(list)); // list
+  remove_func_call.arguments().push_back(                    // &element
+    address_of_exprt(symbol_expr(*elem_info.elem_symbol)));
+  remove_func_call.arguments().push_back(
+    symbol_expr(*elem_info.elem_type_sym));                  // type hash
+  remove_func_call.arguments().push_back(elem_info.elem_size); // element size
+
+  remove_func_call.type() = bool_type();
+  remove_func_call.location() = elem_info.location;
+
+  return remove_func_call;
+}
+
 exprt python_list::build_insert_list_call(
   const symbolt &list,
   const exprt &index,
@@ -277,11 +307,6 @@ exprt python_list::index(const exprt &array, const nlohmann::json &slice_node)
   {
     return handle_index_access(array, slice_node);
   }
-  return exprt();
-}
-
-exprt python_list::remove(const exprt &array, const exprt &value)
-{
   return exprt();
 }
 

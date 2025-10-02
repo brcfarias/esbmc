@@ -1146,7 +1146,7 @@ exprt function_call_expr::handle_list_remove() const
     value_to_remove.identifier().as_string(),
     value_to_remove.type());*/
 
-  return exprt();
+  return list.build_remove_list_call(*list_symbol, call_, value_to_remove);
 }
 
 bool function_call_expr::is_list_method_call() const

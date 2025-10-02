@@ -163,7 +163,8 @@ static inline bool list_insert(
   return true;
 }
 
-static inline size_t list_find(const List *l, const void *value)
+static inline size_t
+list_find(const List *l, const void *value, size_t type_id, size_t type_size)
 {
   if (!l || !value)
     return SIZE_MAX;
@@ -173,8 +174,10 @@ static inline size_t list_find(const List *l, const void *value)
   {
     const Object *obj = &l->items[i];
 
-    // Compare pointer addresses
-    if (obj->value == value)
+    // Compare type and content
+    if (
+      obj->type_id == type_id && obj->size == type_size && obj->value &&
+      memcmp(obj->value, value, type_size) == 0)
     {
       return i;
     }
@@ -184,25 +187,22 @@ static inline size_t list_find(const List *l, const void *value)
   return SIZE_MAX; // Not found
 }
 
-static inline bool list_remove(List *l, const void *value)
+static inline bool
+list_remove(List *l, const void *value, size_t type_id, size_t type_size)
 {
-  // Find the element
-  size_t index = list_find(l, value);
+  size_t index = list_find(l, value, type_id, type_size);
 
   if (index == SIZE_MAX)
     return false;
 
-  // Free the memory of the element being removed
   free((void *)l->items[index].value);
 
   // Shift all elements after index one position to the left
-  size_t elements_to_shift = l->size - index - 1;
-  if (elements_to_shift > 0)
+  size_t i = index;
+  while (i < l->size - 1)
   {
-    memmove(
-      &l->items[index],
-      &l->items[index + 1],
-      elements_to_shift * sizeof(Object));
+    l->items[i] = l->items[i + 1];
+    ++i;
   }
 
   l->size--;
