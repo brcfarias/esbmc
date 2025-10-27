@@ -3942,8 +3942,9 @@ void python_converter::get_attributes_from_self(
       stmt["target"]["value"]["id"] == "self")
     {
       std::string attr_name = stmt["target"]["attr"];
-      const std::string &annotated_type =
-        stmt["annotation"]["id"].get<std::string>();
+      std::string annotated_type;
+      if (stmt.contains("annotation") && stmt["annotation"].contains("id"))
+        annotated_type = stmt["annotation"]["id"].get<std::string>();
       typet type;
       if (annotated_type == "str")
         type = gen_pointer_type(char_type());
@@ -3952,7 +3953,7 @@ void python_converter::get_attributes_from_self(
         typet base_type = get_type_from_annotation(stmt["annotation"], stmt);
         type = gen_pointer_type(base_type);
       }
-      else
+      else if (stmt.contains("annotation") && stmt["annotation"].contains("id"))
         type =
           type_handler_.get_typet(stmt["annotation"]["id"].get<std::string>());
 
