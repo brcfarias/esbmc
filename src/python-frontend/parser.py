@@ -265,6 +265,9 @@ def process_collected_imports(output_dir):
 
         generate_ast_json(tree, filename, imported_elements, output_dir, module_qualname=module_name)
 
+    if len(module_imports) > len(list(module_imports.items())):
+        process_collected_imports(output_dir)
+
 
 def rewrite_relative_import(node, parent_module: str | None):
     """
