@@ -193,15 +193,22 @@ def process_imports(node, output_dir):
 
 
 def resolve_module_file(module_qualname: str, output_dir: str) -> str | None:
-    """Return file path for module qualname (or None if stdlib/missing)."""
+    """Return file path for a real module/package; None for attributes/classes."""
     try:
-        mod = import_module_by_name(module_qualname, output_dir)
-    except SystemExit:
+        spec = importlib.util.find_spec(module_qualname)
+    except (ModuleNotFoundError, AttributeError, ValueError):
         return None
-    filename = mod if isinstance(mod, str) else getattr(mod, "__file__", None)
-    if not filename or is_standard_library_file(filename):
+
+    if not spec or not getattr(spec, "origin", None):
         return None
-    if not os.path.exists(filename):  # e.g. math.pi is not a submodule
+
+    filename = spec.origin
+    # Ignore extension/built-in modules and stdlib
+    if filename.endswith((".so", ".pyd")):
+        return None
+    if is_standard_library_file(filename):
+        return None
+    if not os.path.exists(filename):
         return None
     return filename
 
@@ -242,12 +249,14 @@ def emit_module_json(
 
 
 def process_collected_imports(output_dir):
+    initial_keys = set(module_imports.keys())
+
     for module_name, import_info in list(module_imports.items()):
         imported_elements = None if import_info['import_all'] \
             else [ast.alias(name, None) for name in import_info['specific_names']]
 
         # Attempt to resolve and emit JSON for imported submodules (e.g., "pkg.sub")
-        if import_info['specific_names']:
+        if import_info['specific_names'] and module_name != 'typing':
             for name in list(import_info['specific_names']):
                 emit_module_json(f"{module_name}.{name}", output_dir)
 
@@ -265,7 +274,7 @@ def process_collected_imports(output_dir):
 
         generate_ast_json(tree, filename, imported_elements, output_dir, module_qualname=module_name)
 
-    if len(module_imports) > len(list(module_imports.items())):
+    if set(module_imports.keys()) - initial_keys:
         process_collected_imports(output_dir)
 
 
