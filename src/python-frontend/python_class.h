@@ -3,12 +3,14 @@
 #include <string>
 #include <nlohmann/json.hpp>
 
+using json = nlohmann::json;
+
 class python_class
 {
 public:
   python_class() = default;
 
-  void build(const nlohmann::json &class_def);
+  void build(const json &class_def);
 
   const std::string &methods() const
   {
@@ -20,7 +22,7 @@ public:
     return attrs_;
   }
 
-  const std::string &bases() const
+  const std::vector<python_class> &bases() const
   {
     return bases_;
   }
