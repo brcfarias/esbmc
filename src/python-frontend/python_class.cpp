@@ -46,14 +46,14 @@ void python_class::parse(const json &class_def)
       if (!stmt.is_object())
         continue;
 
-      const std::string ty = stmt.value("_type", "");
+      const std::string stmt_type = stmt.value("_type", "");
 
-      if (ty == "FunctionDef")
+      if (stmt_type == "FunctionDef")
       {
         if (stmt.contains("name") && stmt["name"].is_string())
           methods_.insert(stmt["name"].get<std::string>());
       }
-      else if (ty == "Assign")
+      else if (stmt_type == "Assign")
       {
         if (stmt.contains("targets") && stmt["targets"].is_array())
         {

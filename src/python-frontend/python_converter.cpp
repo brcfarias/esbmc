@@ -5,11 +5,11 @@
 #include <python-frontend/function_call_builder.h>
 #include <python-frontend/python_annotation.h>
 #include <python-frontend/python_list.h>
+#include <python-frontend/python_class_builder.h>
 #include <python-frontend/module_locator.h>
 #include <python-frontend/string_builder.h>
 #include <python-frontend/tuple_handler.h>
 #include <python-frontend/convert_float_literal.h>
-#include <python-frontend/python_class_adapter.h>
 #include <util/std_code.h>
 #include <util/c_types.h>
 #include <util/python_types.h>
@@ -4907,7 +4907,7 @@ void python_converter::get_class_definition(
 
   current_class_name_.clear();
 #endif
-  python_class_adapter(*this, class_node).convert(target_block);
+  python_class_builder(*this, class_node).build(target_block);
 }
 
 void python_converter::get_return_statements(

@@ -8,16 +8,16 @@ struct codet;
 class symbolt;
 class struct_typet;
 
-class python_class_adapter
+class python_class_builder
 {
 public:
-  python_class_adapter(python_converter &conv, const nlohmann::json &cls_node)
+  python_class_builder(python_converter &conv, const nlohmann::json &cls_node)
     : conv_(conv), cls_(cls_node)
   {
     pc_.parse(cls_);
   }
 
-  void convert(codet &out);
+  void build(codet &out);
 
 private:
   python_converter &conv_;
