@@ -10,31 +10,29 @@ class struct_typet;
 class python_class_adapter
 {
 public:
-  explicit python_class_adapter(python_converter &conv) : conv_(conv)
+  python_class_adapter(python_converter &conv, const nlohmann::json &cls_node)
+    : conv_(conv), cls_(cls_node)
   {
+    pc_.build(cls_);
   }
-  void run(const nlohmann::json &cls_node, codet &out);
+
+  void convert(codet &out);
 
 private:
   python_converter &conv_;
+  const nlohmann::json &cls_;
+  python_class pc_;
 
-  // helpers (short + clear)
-  static std::string
-  leaf(const std::string &dotted); // "pkg.sub.Base" -> "Base"
+  // helpers
+  static std::string leaf(const std::string &dotted);
 
-  symbolt *ensure_sym(const std::string &name, const nlohmann::json &cls_node);
+  symbolt *ensure_sym(const std::string &name);
 
-  bool bases(
-    const python_class &pc,
-    struct_typet &ty); // returns if has user-defined base(s)
+  bool bases(struct_typet &st);
 
-  void self_attrs(const nlohmann::json &cls_node, struct_typet &ty);
+  void members(struct_typet &t, codet &out);
 
-  void members(const nlohmann::json &cls_node, struct_typet &ty, codet &out);
+  void add_self_attrs(struct_typet &st);
 
-  void gen_ctor(
-    const python_class &pc,
-    bool has_ud_base,
-    const nlohmann::json &cls_node,
-    struct_typet &ty);
+  void gen_ctor(bool has_ud_base, struct_typet &st);
 };

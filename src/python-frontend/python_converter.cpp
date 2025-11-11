@@ -4907,7 +4907,7 @@ void python_converter::get_class_definition(
 
   current_class_name_.clear();
 #endif
-  python_class_adapter{*this}.run(class_node, target_block);
+  python_class_adapter(*this, class_node).convert(target_block);
 }
 
 void python_converter::get_return_statements(
