@@ -9,6 +9,7 @@
 #include <python-frontend/string_builder.h>
 #include <python-frontend/tuple_handler.h>
 #include <python-frontend/convert_float_literal.h>
+#include <python-frontend/python_class_adapter.h>
 #include <util/std_code.h>
 #include <util/c_types.h>
 #include <util/python_types.h>
@@ -4719,6 +4720,7 @@ void python_converter::get_class_definition(
   const nlohmann::json &class_node,
   codet &target_block)
 {
+#if 0
   struct_typet clazz;
   current_class_name_ = class_node["name"].get<std::string>();
   clazz.tag(current_class_name_);
@@ -4904,6 +4906,8 @@ void python_converter::get_class_definition(
   added_symbol->type = clazz;
 
   current_class_name_.clear();
+#endif
+  python_class_adapter{*this}.run(class_node, target_block);
 }
 
 void python_converter::get_return_statements(

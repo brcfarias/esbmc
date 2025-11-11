@@ -23,6 +23,7 @@ class type_handler;
 class string_builder;
 class module_locator;
 class tuple_handler;
+class python_class_adapter;
 
 class python_converter
 {
@@ -144,6 +145,7 @@ private:
   friend class type_handler;
   friend class python_list;
   friend class tuple_handler;
+  friend class python_class_adapter;
   bool processing_list_elements = false;
 
   template <typename Func>
