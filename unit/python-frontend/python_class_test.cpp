@@ -19,7 +19,7 @@ using json = nlohmann::json;
 //         pass
 //
 
-TEST_CASE("python_class::build - Simple ClassDef (Animal)")
+TEST_CASE("python_class::parse - Simple ClassDef (Animal)")
 {
   // Passing only the ClassDef node (not the full Module)
   std::istringstream data(R"json(
@@ -61,7 +61,7 @@ TEST_CASE("python_class::build - Simple ClassDef (Animal)")
   json cls_json; data >> cls_json;
 
   python_class pc;
-  pc.build(cls_json);
+  pc.parse(cls_json);
 
   REQUIRE(pc.name() == "Animal");
   REQUIRE(pc.methods().count("__init__") == 1);
@@ -86,7 +86,7 @@ TEST_CASE("python_class::build - Simple ClassDef (Animal)")
 //         pass
 //
 
-TEST_CASE("python_class::build - ClassDef with a simple base (Dog : Animal)")
+TEST_CASE("python_class::parse - ClassDef with a simple base (Dog : Animal)")
 {
   std::istringstream data(R"json(
   {
@@ -104,7 +104,7 @@ TEST_CASE("python_class::build - ClassDef with a simple base (Dog : Animal)")
   json cls_json; data >> cls_json;
 
   python_class pc;
-  pc.build(cls_json);
+  pc.parse(cls_json);
 
   REQUIRE(pc.name() == "Dog");
   REQUIRE(pc.methods().count("__init__") == 1);
@@ -123,7 +123,7 @@ TEST_CASE("python_class::build - ClassDef with a simple base (Dog : Animal)")
 //         pass
 //
 
-TEST_CASE("python_class::build - Dotted base name (MyClass : pkg.sub.Base)")
+TEST_CASE("python_class::parse - Dotted base name (MyClass : pkg.sub.Base)")
 {
   std::istringstream data(R"json(
   {
@@ -148,7 +148,7 @@ TEST_CASE("python_class::build - Dotted base name (MyClass : pkg.sub.Base)")
   json cls_json; data >> cls_json;
 
   python_class pc;
-  pc.build(cls_json);
+  pc.parse(cls_json);
 
   REQUIRE(pc.name() == "MyClass");
   REQUIRE(pc.methods().count("__init__") == 1);

@@ -1,4 +1,3 @@
-// python_class_adapter.cpp
 #include "python_class_adapter.h"
 #include "python_converter.h"
 #include <util/python_types.h>
@@ -9,7 +8,6 @@
 #include <util/std_code.h>
 #include <util/irep.h>
 #include <util/expr_util.h>
-#include <cassert>
 
 std::string python_class_adapter::leaf(const std::string &dotted)
 {

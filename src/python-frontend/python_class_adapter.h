@@ -2,7 +2,7 @@
 #include <nlohmann/json.hpp>
 #include <python-frontend/python_class.h>
 
-class python_converter; // forward decl
+class python_converter;
 struct codet;
 class symbolt;
 class struct_typet;
@@ -13,7 +13,7 @@ public:
   python_class_adapter(python_converter &conv, const nlohmann::json &cls_node)
     : conv_(conv), cls_(cls_node)
   {
-    pc_.build(cls_);
+    pc_.parse(cls_);
   }
 
   void convert(codet &out);
@@ -30,7 +30,7 @@ private:
 
   bool bases(struct_typet &st);
 
-  void members(struct_typet &t, codet &out);
+  void members(struct_typet &st, codet &out);
 
   void add_self_attrs(struct_typet &st);
 

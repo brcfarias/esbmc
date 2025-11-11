@@ -27,7 +27,7 @@ std::string base_name_from_ast(const json &node)
 
 } // namespace
 
-void python_class::build(const json &class_def)
+void python_class::parse(const json &class_def)
 {
   name_.clear();
   methods_.clear();
