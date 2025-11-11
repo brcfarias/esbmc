@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string>
+#include <unordered_set>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
@@ -12,23 +12,29 @@ public:
 
   void build(const json &class_def);
 
-  const std::string &methods() const
+  const std::string &name() const
+  {
+    return name_;
+  }
+
+  const std::unordered_set<std::string> &methods() const
   {
     return methods_;
   }
 
-  const std::string &attributes() const
+  const std::unordered_set<std::string> &attributes() const
   {
     return attrs_;
   }
 
-  const std::vector<python_class> &bases() const
+  const std::unordered_set<std::string> &bases() const
   {
     return bases_;
   }
 
 private:
-  std::string methods_;
-  std::string attrs_;
-  std::vector<python_class> bases_;
+  std::string name_;
+  std::unordered_set<std::string> methods_;
+  std::unordered_set<std::string> attrs_;
+  std::unordered_set<std::string> bases_;
 };
