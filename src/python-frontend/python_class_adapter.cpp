@@ -9,12 +9,15 @@
 #include <util/irep.h>
 #include <util/expr_util.h>
 
+// Extracts the last identifier in a dotted name, e.g. "pkg.sub.Base" → "Base"
 std::string python_class_adapter::leaf(const std::string &dotted)
 {
   auto p = dotted.rfind('.');
   return p == std::string::npos ? dotted : dotted.substr(p + 1);
 }
 
+/* Ensures a type symbol exists for a given class name.
+ * Creates an incomplete struct type if the symbol is not yet defined. */
 symbolt *python_class_adapter::ensure_sym(const std::string &name)
 {
   const std::string id = "tag-" + name;
@@ -32,6 +35,8 @@ symbolt *python_class_adapter::ensure_sym(const std::string &name)
   return conv_.symbol_table_.move_symbol_to_context(sym);
 }
 
+/* Handles inheritance: collects user-defined base classes and
+ * merges their components (fields) into the derived struct type. */
 bool python_class_adapter::bases(struct_typet &ty)
 {
   bool has_ud = false;
@@ -58,6 +63,8 @@ bool python_class_adapter::bases(struct_typet &ty)
   return has_ud;
 }
 
+/* Converts methods and annotated class-level attributes (AnnAssign)
+ * into ESBMC symbols. Recursively processes referenced classes. */
 void python_class_adapter::members(struct_typet &ty, codet &out)
 {
   for (const auto &n : cls_.at("body"))
@@ -103,14 +110,18 @@ void python_class_adapter::members(struct_typet &ty, codet &out)
   }
 }
 
-void python_class_adapter::add_self_attrs(struct_typet &ty) {
+/* Extracts instance attributes assigned to self (e.g., self.x = ...)
+ * from within method bodies and adds them as struct fields. */
+void python_class_adapter::add_self_attrs(struct_typet &ty)
+{
   // Extract instance attributes (e.g., self.x = ...) from each method body
   for (const auto &n : cls_.at("body"))
     if (n.value("_type", "") == "FunctionDef")
       conv_.get_attributes_from_self(n.at("body"), ty);
 }
 
-
+/* Generates a default constructor (__init__) when none is provided,
+ * unless there is a user-defined base class or explicit __init__. */
 void python_class_adapter::gen_ctor(bool has_ud_base, struct_typet &st)
 {
   const bool has_init = pc_.methods().count("__init__") > 0;
@@ -142,30 +153,37 @@ void python_class_adapter::gen_ctor(bool has_ud_base, struct_typet &st)
   st.methods().emplace_back(ctor.name, ctor.type);
 }
 
+// Main entry point: converts a Python class node into an ESBMC struct type
+// and populates the symbol table with all members and metadata.
 void python_class_adapter::convert(codet &out)
 {
-  // garante símbolo incompleto
+  // Ensure an incomplete class symbol exists
   symbolt *sym = ensure_sym(pc_.name());
   assert(sym && sym->is_type);
 
+  // Skip if already complete (prevents infinite recursion)
   if (!sym->type.incomplete())
-    return; // já convertido/convertendo
+    return;
 
   sym->type.remove(irept::a_incomplete);
 
+  // Create struct type for this class
   struct_typet st;
   conv_.current_class_name_ = pc_.name();
   st.tag(conv_.current_class_name_);
 
+  // Collect inheritance and instance attributes
   const bool has_ud_base = bases(st);
   add_self_attrs(st);
 
-  // commit parcial (permite lookups recursivos)
+  // Partial commit allows nested lookups while building members
   sym->type = st;
 
+  // Add methods, class attributes, and default constructor
   members(st, out);
   gen_ctor(has_ud_base, st);
 
+  // Finalize type and clear context
   sym->type = st;
   conv_.current_class_name_.clear();
 }
