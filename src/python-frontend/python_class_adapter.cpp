@@ -1,13 +1,13 @@
-#include "python_class_adapter.h"
-#include "python_converter.h"
-#include <util/python_types.h>
+#include <python_class_adapter.h>
+#include <python_converter.h>
 #include <symbol_id.h>
 #include <json_utils.h>
-#include <util/symbol.h>
 #include <type_utils.h>
-#include <util/std_code.h>
-#include <util/irep.h>
 #include <util/expr_util.h>
+#include <util/irep.h>
+#include <util/python_types.h>
+#include <util/std_code.h>
+#include <util/symbol.h>
 
 // Extracts the last identifier in a dotted name, e.g. "pkg.sub.Base" → "Base"
 std::string python_class_adapter::leaf(const std::string &dotted)
@@ -37,7 +37,7 @@ symbolt *python_class_adapter::ensure_sym(const std::string &name)
 
 /* Handles inheritance: collects user-defined base classes and
  * merges their components (fields) into the derived struct type. */
-bool python_class_adapter::bases(struct_typet &ty)
+bool python_class_adapter::get_bases(struct_typet &ty)
 {
   bool has_ud = false;
   auto &ids = ty.add("bases").get_sub();
@@ -65,7 +65,7 @@ bool python_class_adapter::bases(struct_typet &ty)
 
 /* Converts methods and annotated class-level attributes (AnnAssign)
  * into ESBMC symbols. Recursively processes referenced classes. */
-void python_class_adapter::members(struct_typet &ty, codet &out)
+void python_class_adapter::get_members(struct_typet &ty, codet &out)
 {
   for (const auto &n : cls_.at("body"))
   {
@@ -173,14 +173,14 @@ void python_class_adapter::convert(codet &out)
   st.tag(conv_.current_class_name_);
 
   // Collect inheritance and instance attributes
-  const bool has_ud_base = bases(st);
+  const bool has_ud_base = get_bases(st);
   add_self_attrs(st);
 
   // Partial commit allows nested lookups while building members
   sym->type = st;
 
   // Add methods, class attributes, and default constructor
-  members(st, out);
+  get_members(st, out);
   gen_ctor(has_ud_base, st);
 
   // Finalize type and clear context

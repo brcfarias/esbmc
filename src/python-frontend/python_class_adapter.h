@@ -1,4 +1,5 @@
 #pragma once
+
 #include <nlohmann/json.hpp>
 #include <python-frontend/python_class.h>
 
@@ -28,9 +29,9 @@ private:
 
   symbolt *ensure_sym(const std::string &name);
 
-  bool bases(struct_typet &st);
+  bool get_bases(struct_typet &st);
 
-  void members(struct_typet &st, codet &out);
+  void get_members(struct_typet &st, codet &out);
 
   void add_self_attrs(struct_typet &st);
 
