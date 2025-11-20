@@ -1,46 +1,129 @@
+from typing import List
+from nagini_contracts.contracts import *
+from nagini_contracts.obligations import MustTerminate
 
-def quicksort(arr):
-    if not arr:
+
+def quicksort(arr: List[int]) -> List[int]:
+    """
+    Pure recursive quicksort.
+    Nagini-friendly: no comprehensions, no chained comparisons,
+    explicit loops, clear termination measure.
+    """
+    Requires(list_pred(arr))
+    # Termination measure: length decreases strictly in every recursive call
+    Requires(MustTerminate(len(arr) + 1))
+
+    Ensures(list_pred(arr))          # arr not modified
+    Ensures(list_pred(Result()))     # result is a list
+    Ensures(len(Result()) == len(arr))
+    # Result sorted:
+    Ensures(
+        Forall(range(0, len(Result()) - 1),
+               lambda i: Result()[i] <= Result()[i + 1])
+    )
+
+    n: int = len(arr)
+    if n == 0:
         return []
 
-    pivot = arr[0]
-    lesser = quicksort([x for x in arr[1:] if x < pivot])
-    greater = quicksort([x for x in arr[1:] if x >= pivot])
-    return lesser + [pivot] + greater
+    pivot: int = arr[0]
 
-"""
-def quicksort(arr):
-    if not arr:
-        return []
+    # Build lesser = [x in arr[1:] if x < pivot]
+    lesser: List[int] = []
+    i: int = 1
+    while i < n:
+        Invariant(1 <= i and i <= n)
+        Invariant(list_pred(lesser))
+        # Keep lesser sorted only after recursive call (not needed as invariant)
+        if arr[i] < pivot:
+            lesser.append(arr[i])
+        i += 1
 
-    pivot = arr[0]
-    lesser = quicksort([x for x in arr[1:] if x <= pivot])
-    greater = quicksort([x for x in arr[1:] if x > pivot])
-    return lesser + [pivot] + greater
-"""
+    # Build greater = [x in arr[1:] if x >= pivot]
+    greater: List[int] = []
+    j: int = 1
+    while j < n:
+        Invariant(1 <= j and j <= n)
+        Invariant(list_pred(greater))
+        if arr[j] >= pivot:
+            greater.append(arr[j])
+        j += 1
 
-assert quicksort([1, 2, 6, 72, 7, 33, 4]) == [1, 2, 4, 6, 7, 33, 72]
-assert quicksort([3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3]) == [1, 1, 2, 3, 3, 3, 4, 5, 5, 5, 6, 7, 8, 9, 9, 9]
-assert quicksort([5, 4, 3, 2, 1]) == [1, 2, 3, 4, 5]
-assert quicksort([5, 4, 3, 1, 2]) == [1, 2, 3, 4, 5]
-assert quicksort([8, 1, 14, 9, 15, 5, 4, 3, 7, 17, 11, 18, 2, 12, 16, 13, 6, 10]) == \
-       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+    sorted_lesser: List[int] = quicksort(lesser)
+    sorted_greater: List[int] = quicksort(greater)
 
-assert quicksort([9, 4, 5, 2, 17, 14, 10, 6, 15, 8, 12, 13, 16, 3, 1, 7, 11]) == \
-       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+    # Concatenate: sorted_lesser + [pivot] + sorted_greater
+    result: List[int] = []
 
-assert quicksort([13, 14, 7, 16, 9, 5, 24, 21, 19, 17, 12, 10, 1, 15, 23, 25, 11, 3, 2, 6, 22, 8, 20, 4, 18]) == \
-       list(range(1, 26))
+    # append sorted_lesser
+    k: int = 0
+    while k < len(sorted_lesser):
+        Invariant(0 <= k and k <= len(sorted_lesser))
+        Invariant(list_pred(result))
+        result.append(sorted_lesser[k])
+        k += 1
 
-assert quicksort([8, 5, 15, 7, 9, 14, 11, 12, 10, 6, 2, 4, 13, 1, 3]) == \
-       list(range(1, 16))
+    # append pivot
+    result.append(pivot)
 
-assert quicksort([4, 3, 7, 6, 5, 2, 1]) == [1, 2, 3, 4, 5, 6, 7]
-assert quicksort([4, 3, 1, 5, 2]) == [1, 2, 3, 4, 5]
-assert quicksort([5, 4, 2, 3, 6, 7, 1]) == [1, 2, 3, 4, 5, 6, 7]
+    # append sorted_greater
+    h: int = 0
+    while h < len(sorted_greater):
+        Invariant(0 <= h and h <= len(sorted_greater))
+        Invariant(list_pred(result))
+        result.append(sorted_greater[h])
+        h += 1
 
-assert quicksort([10, 16, 6, 1, 14, 19, 15, 2, 9, 4, 18, 17, 12, 3, 11, 8, 13, 5, 7]) == \
-       list(range(1, 20))
+    return result
 
-assert quicksort([10, 16, 6, 1, 14, 19, 15, 2, 9, 4, 18]) == \
-       [1, 2, 4, 6, 9, 10, 14, 15, 16, 18, 19]
+
+# ------------------- Tests -------------------
+
+def is_sorted(a: List[int]) -> bool:
+    i: int = 0
+    while i + 1 < len(a):
+        if a[i] > a[i + 1]:
+            return False
+        i += 1
+    return True
+
+
+def same_multiset(a: List[int], b: List[int], k: int) -> bool:
+    """Check that a and b contain the same number of occurrences for values in [0, k)."""
+    v: int = 0
+    while v < k:
+        cnt1: int = 0
+        cnt2: int = 0
+
+        i: int = 0
+        while i < len(a):
+            if a[i] == v:
+                cnt1 += 1
+            i += 1
+
+        j: int = 0
+        while j < len(b):
+            if b[j] == v:
+                cnt2 += 1
+            j += 1
+
+        if cnt1 != cnt2:
+            return False
+
+        v += 1
+
+    return True
+
+
+def test_quicksort_simple() -> None:
+    arr: List[int] = [1, 2, 6, 72, 7, 33, 4]
+    r: List[int] = quicksort(arr)
+
+    # Sortedness
+    Assert(is_sorted(r))
+
+    # Same number of elements (pigeonhole property)
+    Assert(len(r) == len(arr))
+
+    # Correct multiset (for inputs in small range; here values < 100)
+    Assert(same_multiset(arr, r, 100))

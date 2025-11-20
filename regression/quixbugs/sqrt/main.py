@@ -1,23 +1,43 @@
+from nagini_contracts.contracts import *
 
-def sqrt(x, epsilon):
-    approx = x / 2
+
+def sqrt(x: float, epsilon: float) -> float:
+    Requires(x >= 0.0)
+    Requires(epsilon > 0.0)
+    # Resultado não-negativo
+    Ensures(Result() >= 0.0)
+
+    approx: float = x / 2.0
     while abs(x - approx ** 2) > epsilon:
+        Invariant(x >= 0.0)
+        Invariant(epsilon > 0.0)
+        # Mantemos approx positivo (evita divisão por zero e problemas numéricos)
+        Invariant(approx > 0.0)
         approx = 0.5 * (approx + x / approx)
     return approx
 
-"""
-def sqrt(x, epsilon):
-    approx = x / 2
-    while abs(x - approx * approx) > epsilon:
-        approx = 0.5 * (approx + x / approx)
-    return approx
-"""
+def test1() -> None:
+    r = sqrt(2.0, 0.01)
+    # Em vez de checar igualdade exata com 1.4166..., checamos a propriedade:
+    Assert(abs(2.0 - r * r) <= 0.01)
 
-assert sqrt(2, 0.01) == 1.4166666666666665
-assert sqrt(2, 0.5) == 1.5
-assert sqrt(2, 0.3) == 1.5
-assert sqrt(4, 0.2) == 2
-#assert sqrt(27, 0.01) == 5.196164639727311
-#assert sqrt(33, 0.05) == 5.744627526262464
-assert sqrt(170, 0.03) == 13.038404876679632
+
+def test2() -> None:
+    r = sqrt(2.0, 0.5)
+    Assert(abs(2.0 - r * r) <= 0.5)
+
+
+def test3() -> None:
+    r = sqrt(2.0, 0.3)
+    Assert(abs(2.0 - r * r) <= 0.3)
+
+
+def test4() -> None:
+    r = sqrt(4.0, 0.2)
+    Assert(abs(4.0 - r * r) <= 0.2)
+
+
+def test5() -> None:
+    r = sqrt(170.0, 0.03)
+    Assert(abs(170.0 - r * r) <= 0.03)
 

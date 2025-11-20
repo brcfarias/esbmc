@@ -23,3 +23,4 @@ assert longest_common_subsequence("TATAGC", "TAGCAG") == "TAAG"
 assert longest_common_subsequence("ABCBDAB", "BDCABA") == "BCBA"
 assert longest_common_subsequence("ABCD", "XBCYDQ") == "BCD"
 assert longest_common_subsequence("acbdegcedbg", "begcfeubk") == "begceb"
+
