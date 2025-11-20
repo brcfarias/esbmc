@@ -31,3 +31,4 @@ assert gcd(37, 600) == 1
 assert gcd(20, 100) == 20
 assert gcd(624129, 2061517) == 18913
 assert gcd(3, 12) == 3
+
