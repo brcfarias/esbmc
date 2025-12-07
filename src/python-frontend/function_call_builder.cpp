@@ -385,67 +385,30 @@ symbol_id function_call_builder::build_function_id() const
 
   function_id.set_function(func_name);
 
-  // After building the complete function_id, check if it's a nested function
-  // This must happen AFTER all the class/module resolution above
+  // Check if this is a nested function call
   if (func_type == "Name" && !current_function_name.empty())
   {
-    // 1) Self-recursive calls inside nested functions
-    //
-    // If we are inside foo@F@bar and see a call "bar(...)",
-    // we want to call foo@F@bar (the current function), not foo@F@bar@F@bar.
-    //
-    // We treat any current_function_name whose last component is func_name
-    // as a candidate for recursion.
-    auto has_suffix = [&](const std::string &full, const std::string &suffix) {
-      if (full == suffix)
-        return true;
-      const std::string needle = "@F@" + suffix;
-      if (full.size() < needle.size())
-        return false;
-      return full.compare(full.size() - needle.size(), needle.size(), needle) ==
-             0;
-    };
-
-    if (has_suffix(current_function_name, func_name))
+    // Self-recursive call? (e.g., bar() inside foo@F@bar)
+    if (current_function_name.ends_with("@F@" + func_name))
     {
-      symbol_id self_sid(
-        python_file, current_class_name, current_function_name);
-      if (converter_.symbol_table().find_symbol(self_sid.to_string()))
-      {
-        function_id.set_function(current_function_name);
-        return function_id;
-      }
+      function_id.set_function(current_function_name);
+      return function_id;
     }
 
-    // 2) Walk the nesting chain looking for an enclosing function that defines
-    //    func_name as a nested function.
-    //
-    // Example:
-    //   current_function_name = "foo"       → try "foo@F@bar"
-    //   current_function_name = "foo@F@bar" → try "foo@F@bar@F@baz",
-    //                                         then "foo@F@baz"
-    //
-    std::string context = current_function_name;
-    while (true)
+    // Walk nesting chain from deepest to shallowest
+    for (std::string ctx = current_function_name; !ctx.empty();)
     {
-      std::string candidate =
-        context.empty() ? func_name : (context + "@F@" + func_name);
+      std::string nested_id = ctx + "@F@" + func_name;
+      symbol_id sid(python_file, current_class_name, nested_id);
 
-      symbol_id nested_sid(python_file, current_class_name, candidate);
-      const symbolt *nested_symbol =
-        converter_.symbol_table().find_symbol(nested_sid.to_string());
-
-      if (nested_symbol)
+      if (converter_.symbol_table().find_symbol(sid.to_string()))
       {
-        function_id.set_function(candidate);
-        break;
+        function_id.set_function(nested_id);
+        return function_id;
       }
 
-      // Go one level up in the nesting chain (strip last "@F@...").
-      auto pos = context.rfind("@F@");
-      if (pos == std::string::npos)
-        break;
-      context = context.substr(0, pos);
+      size_t pos = ctx.rfind("@F@");
+      ctx = (pos != std::string::npos) ? ctx.substr(0, pos) : "";
     }
   }
 
