@@ -1,0 +1,66 @@
+name: Performance Benchmarks
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"
+
+jobs:
+  perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential git gperf libgmp-dev cmake bison curl flex \
+            g++-multilib linux-libc-dev libboost-all-dev libtinfo-dev \
+            ninja-build python3-setuptools unzip wget python3-pip
+
+      - name: Configure ESBMC
+        run: cmake -S . -B build -GNinja -DCMAKE_BUILD_TYPE=Release -DDOWNLOAD_DEPENDENCIES=ON
+
+      - name: Build ESBMC
+        run: cmake --build build --target esbmc -- -j2
+
+      - name: Run performance benchmarks
+        run: |
+          python3 scripts/bench_perf.py \
+            benchmarks/perf_cases.json \
+            --esbmc-bin build/src/esbmc/esbmc \
+            --repeat 1 \
+            --out-json perf_results.json \
+            --out-csv perf_results.csv \
+            --log-dir perf_logs
+
+      - name: Fetch previous perf artifact (best-effort)
+        id: fetch_previous
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          github_token: ${{ github.token }}
+          workflow: perf.yml
+          branch: ${{ github.ref_name }}
+          run_number: ${{ github.run_number - 1 }}
+          name: perf-results
+          path: baseline_artifact
+        continue-on-error: true
+
+      - name: Compare against baseline
+        if: steps.fetch_previous.outcome == 'success'
+        run: |
+          python3 scripts/compare_perf.py \
+            --baseline baseline_artifact/perf_results.json \
+            --current perf_results.json \
+            --threshold 0.05
+
+      - name: Upload perf artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-results
+          path: |
+            perf_results.json
+            perf_results.csv
+            perf_logs

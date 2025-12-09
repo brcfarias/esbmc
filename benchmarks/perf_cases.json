@@ -1,0 +1,39 @@
+[
+  {
+    "name": "simple-safe",
+    "path": "benchmarks/programs/simple_safe.c",
+    "args": [
+      "--no-unwinding-assertions"
+    ],
+    "timeout": 30
+  },
+  {
+    "name": "threaded-lock",
+    "path": "benchmarks/programs/thread_lock.c",
+    "args": [
+      "--context-bound",
+      "2",
+      "--no-unwinding-assertions"
+    ],
+    "timeout": 60
+  },
+  {
+    "name": "float-arith",
+    "path": "benchmarks/programs/float_arith.c",
+    "args": [
+      "--floatbv",
+      "--no-unwinding-assertions"
+    ],
+    "timeout": 60
+  },
+  {
+    "name": "solver-needed",
+    "path": "benchmarks/programs/solver_needed.c",
+    "args": [
+      "--no-simplify",
+      "--no-slice",
+      "--no-unwinding-assertions"
+    ],
+    "timeout": 60
+  }
+]
