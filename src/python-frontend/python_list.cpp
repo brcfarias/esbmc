@@ -12,6 +12,7 @@
 #include <util/mp_arith.h>
 #include <util/python_types.h>
 #include <util/symbolic_types.h>
+#include <algorithm>
 #include <string>
 #include <functional>
 
@@ -82,6 +83,15 @@ static typet get_elem_type_from_annotation(
 
 std::unordered_map<std::string, std::vector<std::pair<std::string, typet>>>
   python_list::list_type_map{};
+
+static bool is_binary_string(const std::string &value)
+{
+  if (value.empty())
+    return false;
+  return std::all_of(value.begin(), value.end(), [](char c) {
+    return c == '0' || c == '1';
+  });
+}
 
 list_elem_info
 python_list::get_list_element_info(const nlohmann::json &op, const exprt &elem)
@@ -1269,6 +1279,23 @@ exprt python_list::list_repetition(
   BigInt list_size;
   exprt list_elem;
 
+  auto parse_size_from_symbol =
+    [&](symbolt *size_var, BigInt &out) -> bool {
+    if (
+      size_var->value.is_code() || size_var->value.is_nil() ||
+      !size_var->value.is_constant())
+    {
+      return false;
+    }
+
+    const std::string &size_str = size_var->value.value().as_string();
+    if (!is_binary_string(size_str))
+      return false;
+
+    out = std::stoi(size_str, nullptr, 2);
+    return true;
+  };
+
   // Get list size from lhs (e.g.: 3 * [1])
   if (lhs.type() != list_type)
   {
@@ -1277,7 +1304,11 @@ exprt python_list::list_repetition(
       symbolt *size_var = converter_.find_symbol(
         to_symbol_expr(lhs).get_identifier().as_string());
       assert(size_var);
-      list_size = std::stoi(size_var->value.value().as_string(), nullptr, 2);
+      symbolt *list_symbol =
+        converter_.find_symbol(rhs.identifier().as_string());
+      assert(list_symbol);
+      if (!parse_size_from_symbol(size_var, list_size))
+        return create_vla(list_value_, list_symbol, size_var, list_elem);
     }
     else if (lhs.is_constant())
       list_size = std::stoi(lhs.value().as_string(), nullptr, 2);
@@ -1303,12 +1334,8 @@ exprt python_list::list_repetition(
         converter_.find_symbol(lhs.identifier().as_string());
       assert(list_symbol);
 
-      if (size_var->value.is_code() || size_var->value.is_nil())
-      {
+      if (!parse_size_from_symbol(size_var, list_size))
         return create_vla(list_value_, list_symbol, size_var, list_elem);
-      }
-
-      list_size = std::stoi(size_var->value.value().as_string(), nullptr, 2);
     }
     else if (rhs.is_constant())
       list_size = std::stoi(rhs.value().as_string(), nullptr, 2);
