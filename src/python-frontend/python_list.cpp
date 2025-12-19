@@ -1036,22 +1036,76 @@ exprt python_list::handle_index_access(
       }
       else
       {
-        // Handle case where we need to find the variable declaration
-        while (!list_node.is_null() && (!list_node.contains("value") ||
-                                        !list_node["value"].contains("elts") ||
-                                        !list_node["value"]["elts"].is_array()))
-        {
-          if (list_node.contains("value") && list_node["value"].contains("id"))
-            list_node = json_utils::find_var_decl(
-              list_node["value"]["id"],
-              converter_.current_function_name(),
-              converter_.ast());
-          else
+        // Resolve declarations and infer element type from dict subscripts or list literals.
+        auto resolve_decl = [&](nlohmann::json node) {
+          while (
+            !node.is_null() &&
+            (!node.contains("value") || !node["value"].contains("elts") ||
+             !node["value"]["elts"].is_array()))
           {
-            break;
+            if (node.contains("value") && node["value"].contains("id"))
+            {
+              node = json_utils::find_var_decl(
+                node["value"]["id"],
+                converter_.current_function_name(),
+                converter_.ast());
+            }
+            else
+            {
+              break;
+            }
           }
-        }
+          return node;
+        };
 
+        auto infer_from_dict_subscript = [&](const nlohmann::json &node) {
+          typet inferred;
+          if (node["value"]["_type"] != "Subscript")
+            return inferred;
+          if (node["value"]["value"]["_type"] != "Name")
+            return inferred;
+
+          std::string dict_var_name =
+            node["value"]["value"]["id"].get<std::string>();
+
+          nlohmann::json dict_node = json_utils::find_var_decl(
+            dict_var_name, converter_.current_function_name(), converter_.ast());
+          if (dict_node.is_null() || !dict_node.contains("value"))
+            return inferred;
+
+          const auto &dict_value = dict_node["value"];
+          if (!node["value"].contains("slice"))
+            return inferred;
+          const auto &key_node = node["value"]["slice"];
+
+          if (!(key_node["_type"] == "Constant" && key_node.contains("value")))
+            return inferred;
+
+          std::string key = key_node["value"].get<std::string>();
+          if (
+            dict_value["_type"] != "Dict" || !dict_value.contains("keys") ||
+            !dict_value.contains("values"))
+            return inferred;
+
+          const auto &keys = dict_value["keys"];
+          const auto &values = dict_value["values"];
+          for (size_t i = 0; i < keys.size(); i++)
+          {
+            if (
+              keys[i]["_type"] == "Constant" &&
+              keys[i]["value"].get<std::string>() == key)
+            {
+              nlohmann::json first_elem =
+                json_utils::get_list_element(values[i], 0);
+              if (!first_elem.is_null() && !first_elem.empty())
+                inferred = converter_.get_type_handler().get_typet(first_elem);
+              break;
+            }
+          }
+          return inferred;
+        };
+
+        list_node = resolve_decl(list_node);
         if (!list_node.is_null() && list_node["_type"] == "arg")
         {
           elem_type = get_elem_type_from_annotation(
@@ -1059,84 +1113,16 @@ exprt python_list::handle_index_access(
         }
         else if (!list_node.is_null() && list_node.contains("value"))
         {
-          // Check if the value is a Subscript (such as d['a'])
-          if (list_node["value"]["_type"] == "Subscript")
-          {
-            // For ESBMC_iter_0 = d['a'], get element type from dict's actual value
-            if (list_node["value"]["value"]["_type"] == "Name")
-            {
-              std::string dict_var_name =
-                list_node["value"]["value"]["id"].get<std::string>();
-
-              // Find the dict's declaration
-              nlohmann::json dict_node = json_utils::find_var_decl(
-                dict_var_name,
-                converter_.current_function_name(),
-                converter_.ast());
-
-              if (!dict_node.is_null() && dict_node.contains("value"))
-              {
-                const auto &dict_value = dict_node["value"];
-
-                // Get the key being accessed (e.g., 'a' in d['a'])
-                if (list_node["value"].contains("slice"))
-                {
-                  const auto &key_node = list_node["value"]["slice"];
-
-                  // Handle constant string key
-                  if (
-                    key_node["_type"] == "Constant" &&
-                    key_node.contains("value"))
-                  {
-                    std::string key = key_node["value"].get<std::string>();
-
-                    // For dict literals, get the corresponding value
-                    if (
-                      dict_value["_type"] == "Dict" &&
-                      dict_value.contains("keys") &&
-                      dict_value.contains("values"))
-                    {
-                      const auto &keys = dict_value["keys"];
-                      const auto &values = dict_value["values"];
-
-                      // Find the matching key
-                      for (size_t i = 0; i < keys.size(); i++)
-                      {
-                        if (
-                          keys[i]["_type"] == "Constant" &&
-                          keys[i]["value"].get<std::string>() == key)
-                        {
-                          // Found the value: now get its element type
-                          const auto &list_value = values[i];
-
-                          // Get the first element from the list using json_utils
-                          nlohmann::json first_elem =
-                            json_utils::get_list_element(list_value, 0);
-
-                          if (!first_elem.is_null() && !first_elem.empty())
-                          {
-                            // Use type_handler to infer the element type
-                            elem_type = converter_.get_type_handler().get_typet(
-                              first_elem);
-                          }
-                          break;
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
+          typet from_dict = infer_from_dict_subscript(list_node);
+          if (from_dict != typet())
+            elem_type = from_dict;
           else if (
             list_node["value"].contains("elts") &&
             list_node["value"]["elts"].is_array() &&
             !list_node["value"]["elts"].empty())
           {
-            // Get element type from first list element using json_utils
             nlohmann::json first_elem =
               json_utils::get_list_element(list_node["value"], 0);
-
             if (!first_elem.is_null() && !first_elem.empty())
               elem_type = converter_.get_type_handler().get_typet(first_elem);
           }
