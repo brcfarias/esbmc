@@ -228,8 +228,22 @@ exprt python_converter::get_logical_operator_expr(const nlohmann::json &element)
   for (const auto &operand : element["values"])
   {
     exprt operand_expr = get_expr(operand);
+    if (operand_expr.is_code() && operand_expr.statement() == "function_call")
+    {
+      const code_function_callt &code_call =
+        to_code_function_call(to_code(operand_expr));
+      typet return_type = code_call.type();
+      if (return_type.is_empty() || return_type.id() == typet::t_empty)
+        return_type = type_handler_.get_typet("int", 0);
+      side_effect_expr_function_callt side_effect_call;
+      side_effect_call.function() = code_call.function();
+      side_effect_call.arguments() = code_call.arguments();
+      side_effect_call.type() = return_type;
+      side_effect_call.location() = code_call.location();
+      operand_expr = side_effect_call;
+    }
     logical_expr.copy_to_operands(operand_expr);
-    contains_non_boolean |= !operand_expr.is_boolean();
+    contains_non_boolean |= !operand_expr.type().is_bool();
   }
 
   // Restore the original flag state
@@ -240,7 +254,7 @@ exprt python_converter::get_logical_operator_expr(const nlohmann::json &element)
   {
     typet t = extract_type_from_boolean_op(logical_expr).type();
     // Are we dealing with an actual bool expression?
-    if (t.is_bool())
+    if (t.is_bool() && current_element_type.is_bool())
       return logical_expr;
     // Result expression starts from last operand as default else branch
     exprt result_expr = logical_expr.operands().back();
@@ -7106,7 +7120,7 @@ exprt python_converter::extract_type_from_boolean_op(const exprt &bool_op)
 {
   // Only OR and AND are special
   if (!bool_op.is_and() && !bool_op.is_or())
-    return gen_zero(bool_type());
+    return gen_zero(bool_op.type());
 
   // Let's try to be smart and guess the type;
   // In the future this could be trivial with an Python Obj struct
@@ -7131,9 +7145,10 @@ exprt python_converter::extract_type_from_boolean_op(const exprt &bool_op)
         found_type = e.type();
       else if (found_type != e.type() && !e.type().is_array())
       {
-        log_error("Boolean expression with more than one constant type");
-        bool_op.dump();
-        abort();
+        log_warning(
+          "Boolean expression with more than one constant type; "
+          "falling back to Any");
+        return gen_zero(any_type());
       }
     }
   }
