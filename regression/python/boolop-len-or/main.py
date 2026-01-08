@@ -1,4 +1,4 @@
-def pick_len(s: str, t: str) -> int:
+def pick_len(s, t):
     return len(s) or len(t)
 
 
