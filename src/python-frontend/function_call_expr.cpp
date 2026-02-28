@@ -1823,11 +1823,28 @@ exprt function_call_expr::handle_list_pop() const
   if (args.size() > 1)
     throw std::runtime_error("pop() takes at most 1 argument");
 
-  std::string list_display_name;
-  const symbolt *list_symbol = get_object_list_symbol(list_display_name);
+  const symbolt *list_symbol = nullptr;
+
+  // Temporary expressions (e.g., (a-b).pop()) are lowered to temporary symbols.
+  if (
+    call_["func"].contains("value") && call_["func"]["value"].contains("_type") &&
+    call_["func"]["value"]["_type"] == "BinOp")
+  {
+    exprt list_expr = converter_.get_expr(call_["func"]["value"]);
+    if (list_expr.is_symbol())
+    {
+      list_symbol = converter_.symbol_table().find_symbol(
+        to_symbol_expr(list_expr).get_identifier());
+    }
+  }
 
   if (!list_symbol)
-    throw std::runtime_error("List variable not found: " + list_display_name);
+  {
+    std::string list_display_name;
+    list_symbol = get_object_list_symbol(list_display_name);
+    if (!list_symbol)
+      throw std::runtime_error("List variable not found: " + list_display_name);
+  }
 
   // Determine the index (default is -1 for last element)
   exprt index_expr;
@@ -3403,12 +3420,10 @@ exprt function_call_expr::handle_general_function_call()
     }
 
     if (
-      (function_id_.get_function() == "__ESBMC_get_object_size" ||
-       function_id_.get_function() == "strlen") &&
+      function_id_.get_function() == "__ESBMC_get_object_size" &&
       (arg.type() == type_handler_.get_list_type() ||
        (arg.type().is_pointer() &&
-        arg.type().subtype() == type_handler_.get_list_type())) &&
-      arg.is_symbol())
+        arg.type().subtype() == type_handler_.get_list_type())))
     {
       symbolt *list_symbol =
         converter_.find_symbol(arg.identifier().as_string());
