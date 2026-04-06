@@ -104,10 +104,21 @@ static bool is_param_used_as_string(
 typet python_lambda::infer_lambda_return_type(
   [[maybe_unused]] const nlohmann::json &body_node)
 {
-  // Check if body is a string operation
   if (body_node.contains("_type"))
   {
     std::string body_type = body_node["_type"].get<std::string>();
+
+    if (body_type == "Compare" || body_type == "BoolOp")
+      return bool_type();
+
+    if (body_type == "UnaryOp" && body_node.contains("op"))
+    {
+      const std::string op_type = body_node["op"].value("_type", "");
+      if (op_type == "Not")
+        return bool_type();
+      if (body_node.contains("operand"))
+        return infer_lambda_return_type(body_node["operand"]);
+    }
 
     // String concatenation (BinOp with Add and string constant)
     if (
